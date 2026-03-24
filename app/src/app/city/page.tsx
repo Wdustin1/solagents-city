@@ -1,163 +1,849 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+
+// ============================================
+// TYPES
+// ============================================
 
 type District = 'work' | 'financial' | 'entertainment' | 'residential' | 'city_hall';
 
-interface DistrictInfo {
+interface Building {
+  id: string;
   name: string;
-  icon: string;
-  description: string;
+  type: string;
+  district: District;
+  gridX: number;
+  gridY: number;
+  width: number;  // grid units
+  depth: number;  // grid units
+  height: number; // visual height multiplier
+  emoji: string;
+  agents: number;
+  revenue: number;
   color: string;
-  borderColor: string;
-  buildings: { name: string; type: string; agents: number; revenue: number }[];
+  roofColor: string;
+  wallColor: string;
 }
 
-const districts: Record<District, DistrictInfo> = {
-  work: {
-    name: 'Work District',
-    icon: '💼',
-    description: 'Where the magic happens. Design agencies, dev studios, and writing houses compete for your jobs.',
-    color: 'from-purple-900/40 to-purple-800/20',
-    borderColor: 'border-purple-500/50',
-    buildings: [
-      { name: 'PixelForge Studio', type: 'Design Agency', agents: 8, revenue: 12.4 },
-      { name: 'CodeCraft Labs', type: 'Dev Studio', agents: 12, revenue: 28.9 },
-      { name: 'InkWell Writers', type: 'Writing House', agents: 6, revenue: 5.2 },
-      { name: 'DataSight Analytics', type: 'Analytics Firm', agents: 5, revenue: 8.7 },
-      { name: 'GrowthEngine', type: 'Marketing Agency', agents: 4, revenue: 3.1 },
-    ],
-  },
-  financial: {
-    name: 'Financial District',
-    icon: '🏦',
-    description: 'Banks, exchanges, and investment funds. The beating heart of the city economy.',
-    color: 'from-blue-900/40 to-blue-800/20',
-    borderColor: 'border-blue-500/50',
-    buildings: [
-      { name: 'City Central Bank', type: 'Bank', agents: 3, revenue: 15.6 },
-      { name: 'Sol Swap Exchange', type: 'Exchange', agents: 2, revenue: 22.1 },
-      { name: 'Alpha Capital Fund', type: 'Investment Fund', agents: 4, revenue: 9.3 },
-    ],
-  },
-  entertainment: {
-    name: 'Entertainment District',
-    icon: '🎰',
-    description: 'Where agents come to play. Casinos, games, and arenas.',
-    color: 'from-yellow-900/40 to-yellow-800/20',
-    borderColor: 'border-yellow-500/50',
-    buildings: [
-      { name: 'Lucky Sol Casino', type: 'Casino', agents: 2, revenue: 18.4 },
-      { name: 'High Roller Lounge', type: 'Casino', agents: 1, revenue: 7.2 },
-    ],
-  },
-  residential: {
-    name: 'Residential District',
-    icon: '🏠',
-    description: 'Home sweet home. Every agent has a place in the city.',
-    color: 'from-green-900/40 to-green-800/20',
-    borderColor: 'border-green-500/50',
-    buildings: [
-      { name: 'Starter Apartments', type: 'Housing', agents: 45, revenue: 0 },
-      { name: 'Mid-Rise Condos', type: 'Housing', agents: 28, revenue: 0 },
-      { name: 'Penthouse Tower', type: 'Luxury', agents: 8, revenue: 0 },
-    ],
-  },
-  city_hall: {
-    name: 'City Hall',
-    icon: '🏛️',
-    description: 'Governance, treasury, and city-wide statistics. The center of power.',
-    color: 'from-gray-800/40 to-gray-700/20',
-    borderColor: 'border-gray-500/50',
-    buildings: [
-      { name: 'Treasury', type: 'Government', agents: 0, revenue: 0 },
-      { name: 'Tax Office', type: 'Government', agents: 0, revenue: 0 },
-    ],
-  },
+interface CityAgent {
+  id: number;
+  x: number;
+  y: number;
+  targetX: number;
+  targetY: number;
+  speed: number;
+  color: string;
+  district: District;
+  status: 'walking' | 'working' | 'idle';
+  emoji: string;
+}
+
+interface EconomyTicker {
+  label: string;
+  value: string;
+  change: number;
+  icon: string;
+}
+
+// ============================================
+// CONSTANTS
+// ============================================
+
+const GRID_SIZE = 40; // px per grid unit
+const ISO_ANGLE = 30; // degrees
+
+const DISTRICT_COLORS: Record<District, { bg: string; border: string; glow: string; label: string }> = {
+  work: { bg: 'rgba(147, 51, 234, 0.08)', border: 'rgba(147, 51, 234, 0.3)', glow: '#9333ea', label: '💼 Work District' },
+  financial: { bg: 'rgba(59, 130, 246, 0.08)', border: 'rgba(59, 130, 246, 0.3)', glow: '#3b82f6', label: '🏦 Financial District' },
+  entertainment: { bg: 'rgba(234, 179, 8, 0.08)', border: 'rgba(234, 179, 8, 0.3)', glow: '#eab308', label: '🎰 Entertainment' },
+  residential: { bg: 'rgba(34, 197, 94, 0.08)', border: 'rgba(34, 197, 94, 0.3)', glow: '#22c55e', label: '🏠 Residential' },
+  city_hall: { bg: 'rgba(156, 163, 175, 0.12)', border: 'rgba(156, 163, 175, 0.3)', glow: '#9ca3af', label: '🏛️ City Hall' },
 };
 
-export default function CityPage() {
-  const [selectedDistrict, setSelectedDistrict] = useState<District>('work');
-  const district = districts[selectedDistrict];
+const BUILDINGS: Building[] = [
+  // Work District (top-left quadrant)
+  { id: 'pixelforge', name: 'PixelForge Studio', type: 'Design Agency', district: 'work', gridX: 1, gridY: 1, width: 2, depth: 2, height: 3, emoji: '🎨', agents: 8, revenue: 12.4, color: '#7c3aed', roofColor: '#6d28d9', wallColor: '#5b21b6' },
+  { id: 'codecraft', name: 'CodeCraft Labs', type: 'Dev Studio', district: 'work', gridX: 4, gridY: 1, width: 3, depth: 2, height: 4, emoji: '💻', agents: 12, revenue: 28.9, color: '#8b5cf6', roofColor: '#7c3aed', wallColor: '#6d28d9' },
+  { id: 'inkwell', name: 'InkWell Writers', type: 'Writing House', district: 'work', gridX: 1, gridY: 4, width: 2, depth: 2, height: 2, emoji: '✍️', agents: 6, revenue: 5.2, color: '#a78bfa', roofColor: '#8b5cf6', wallColor: '#7c3aed' },
+  { id: 'datasight', name: 'DataSight Analytics', type: 'Analytics Firm', district: 'work', gridX: 4, gridY: 4, width: 2, depth: 2, height: 3, emoji: '📊', agents: 5, revenue: 8.7, color: '#7c3aed', roofColor: '#6d28d9', wallColor: '#5b21b6' },
+  { id: 'growth', name: 'GrowthEngine', type: 'Marketing Agency', district: 'work', gridX: 7, gridY: 3, width: 2, depth: 2, height: 2.5, emoji: '📈', agents: 4, revenue: 3.1, color: '#a78bfa', roofColor: '#8b5cf6', wallColor: '#7c3aed' },
+
+  // Financial District (top-right quadrant)
+  { id: 'central_bank', name: 'City Central Bank', type: 'Bank', district: 'financial', gridX: 11, gridY: 1, width: 3, depth: 2, height: 5, emoji: '🏦', agents: 3, revenue: 15.6, color: '#2563eb', roofColor: '#1d4ed8', wallColor: '#1e40af' },
+  { id: 'sol_swap', name: 'Sol Swap Exchange', type: 'Exchange', district: 'financial', gridX: 15, gridY: 1, width: 2, depth: 2, height: 4, emoji: '💱', agents: 2, revenue: 22.1, color: '#3b82f6', roofColor: '#2563eb', wallColor: '#1d4ed8' },
+  { id: 'alpha_fund', name: 'Alpha Capital', type: 'Investment Fund', district: 'financial', gridX: 11, gridY: 4, width: 2, depth: 2, height: 3.5, emoji: '💰', agents: 4, revenue: 9.3, color: '#60a5fa', roofColor: '#3b82f6', wallColor: '#2563eb' },
+
+  // Entertainment District (bottom-left)
+  { id: 'lucky_sol', name: 'Lucky Sol Casino', type: 'Casino', district: 'entertainment', gridX: 1, gridY: 8, width: 3, depth: 2, height: 3, emoji: '🎰', agents: 2, revenue: 18.4, color: '#ca8a04', roofColor: '#a16207', wallColor: '#854d0e' },
+  { id: 'high_roller', name: 'High Roller Lounge', type: 'Casino', district: 'entertainment', gridX: 5, gridY: 8, width: 2, depth: 2, height: 2.5, emoji: '🃏', agents: 1, revenue: 7.2, color: '#eab308', roofColor: '#ca8a04', wallColor: '#a16207' },
+  { id: 'arena', name: 'Battle Arena', type: 'Arena', district: 'entertainment', gridX: 1, gridY: 11, width: 3, depth: 3, height: 2, emoji: '⚔️', agents: 0, revenue: 0, color: '#fbbf24', roofColor: '#f59e0b', wallColor: '#d97706' },
+
+  // Residential (bottom-right)
+  { id: 'starter_apt', name: 'Starter Apartments', type: 'Housing', district: 'residential', gridX: 11, gridY: 8, width: 2, depth: 3, height: 3, emoji: '🏠', agents: 45, revenue: 0, color: '#16a34a', roofColor: '#15803d', wallColor: '#166534' },
+  { id: 'midrise', name: 'Mid-Rise Condos', type: 'Housing', district: 'residential', gridX: 14, gridY: 8, width: 2, depth: 2, height: 4, emoji: '🏢', agents: 28, revenue: 0, color: '#22c55e', roofColor: '#16a34a', wallColor: '#15803d' },
+  { id: 'penthouse', name: 'Penthouse Tower', type: 'Luxury', district: 'residential', gridX: 14, gridY: 11, width: 2, depth: 2, height: 6, emoji: '🏙️', agents: 8, revenue: 0, color: '#4ade80', roofColor: '#22c55e', wallColor: '#16a34a' },
+
+  // City Hall (center)
+  { id: 'city_hall', name: 'City Hall', type: 'Government', district: 'city_hall', gridX: 8, gridY: 6, width: 3, depth: 2, height: 4.5, emoji: '🏛️', agents: 0, revenue: 0, color: '#6b7280', roofColor: '#4b5563', wallColor: '#374151' },
+  { id: 'treasury', name: 'City Treasury', type: 'Government', district: 'city_hall', gridX: 8, gridY: 9, width: 2, depth: 2, height: 3, emoji: '🏦', agents: 0, revenue: 0, color: '#9ca3af', roofColor: '#6b7280', wallColor: '#4b5563' },
+];
+
+// ============================================
+// ISOMETRIC HELPERS
+// ============================================
+
+function toIso(gridX: number, gridY: number): { x: number; y: number } {
+  const x = (gridX - gridY) * (GRID_SIZE * 0.866); // cos(30)
+  const y = (gridX + gridY) * (GRID_SIZE * 0.5);    // sin(30)
+  return { x, y };
+}
+
+// ============================================
+// ISOMETRIC BUILDING COMPONENT
+// ============================================
+
+function IsometricBuilding({
+  building,
+  isSelected,
+  isHovered,
+  onClick,
+  onHover,
+}: {
+  building: Building;
+  isSelected: boolean;
+  isHovered: boolean;
+  onClick: () => void;
+  onHover: (hover: boolean) => void;
+}) {
+  const pos = toIso(building.gridX, building.gridY);
+  const w = building.width * GRID_SIZE * 0.866;
+  const d = building.depth * GRID_SIZE * 0.866;
+  const h = building.height * GRID_SIZE * 0.6;
+
+  // Isometric cube faces as SVG polygon points
+  const topFace = [
+    `${0},${-h}`,
+    `${w * 0.5},${-h - d * 0.29}`,
+    `${w * 0.5 + d * 0.5},${-h - d * 0.29 + d * 0.29}`,
+    `${d * 0.5},${-h + d * 0.29}`,
+  ].join(' ');
+
+  const leftFace = [
+    `${0},${-h}`,
+    `${d * 0.5},${-h + d * 0.29}`,
+    `${d * 0.5},${d * 0.29}`,
+    `${0},${0}`,
+  ].join(' ');
+
+  const rightFace = [
+    `${d * 0.5},${-h + d * 0.29}`,
+    `${w * 0.5 + d * 0.5},${-h - d * 0.29 + d * 0.29}`,
+    `${w * 0.5 + d * 0.5},${d * 0.29 - d * 0.29 + d * 0.29}`,
+    `${d * 0.5},${d * 0.29}`,
+  ].join(' ');
+
+  const scale = isHovered ? 1.02 : 1;
+  const glow = isSelected || isHovered;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">Sol Agents City</h1>
-        <p className="text-gray-400 mt-1">Explore the districts, companies, and agents that power the economy</p>
+    <g
+      transform={`translate(${pos.x + 500}, ${pos.y + 80})`}
+      onClick={onClick}
+      onMouseEnter={() => onHover(true)}
+      onMouseLeave={() => onHover(false)}
+      style={{ cursor: 'pointer', transition: 'transform 0.2s' }}
+    >
+      {/* Glow effect */}
+      {glow && (
+        <ellipse
+          cx={w * 0.25 + d * 0.25}
+          cy={d * 0.15}
+          rx={w * 0.4}
+          ry={d * 0.2}
+          fill={building.color}
+          opacity={0.3}
+          filter="url(#glow)"
+        />
+      )}
+
+      {/* Building body */}
+      <g transform={`scale(${scale})`}>
+        {/* Left wall */}
+        <polygon points={leftFace} fill={building.wallColor} stroke="rgba(0,0,0,0.3)" strokeWidth="0.5" />
+        {/* Right wall */}
+        <polygon points={rightFace} fill={building.color} stroke="rgba(0,0,0,0.3)" strokeWidth="0.5" />
+        {/* Roof */}
+        <polygon points={topFace} fill={building.roofColor} stroke="rgba(0,0,0,0.2)" strokeWidth="0.5" />
+
+        {/* Windows (dots on walls) */}
+        {Array.from({ length: Math.floor(building.height * 1.5) }).map((_, i) => (
+          <rect
+            key={`win-${i}`}
+            x={d * 0.5 + 4}
+            y={-h + d * 0.29 + 6 + i * 12}
+            width={3}
+            height={4}
+            fill="rgba(255,255,200,0.6)"
+            rx={0.5}
+          />
+        ))}
+
+        {/* Emoji on roof */}
+        <text
+          x={w * 0.25 + d * 0.1}
+          y={-h - d * 0.05}
+          fontSize={building.width >= 3 ? 16 : 12}
+          textAnchor="middle"
+          style={{ pointerEvents: 'none' }}
+        >
+          {building.emoji}
+        </text>
+
+        {/* Agent count badge */}
+        {building.agents > 0 && (
+          <>
+            <circle
+              cx={w * 0.5 + d * 0.5 - 2}
+              cy={-h - d * 0.29 + d * 0.29 - 8}
+              r={8}
+              fill="#1e1e2e"
+              stroke={building.color}
+              strokeWidth={1.5}
+            />
+            <text
+              x={w * 0.5 + d * 0.5 - 2}
+              y={-h - d * 0.29 + d * 0.29 - 5}
+              fontSize={8}
+              fill="white"
+              textAnchor="middle"
+              fontWeight="bold"
+              style={{ pointerEvents: 'none' }}
+            >
+              {building.agents}
+            </text>
+          </>
+        )}
+      </g>
+    </g>
+  );
+}
+
+// ============================================
+// WALKING AGENT COMPONENT
+// ============================================
+
+function WalkingAgent({ agent }: { agent: CityAgent }) {
+  const pos = toIso(agent.x, agent.y);
+  const pulseColor = agent.status === 'working' ? '#22c55e' : agent.status === 'walking' ? '#60a5fa' : '#9ca3af';
+
+  return (
+    <g transform={`translate(${pos.x + 500}, ${pos.y + 80})`}>
+      <circle r={3} fill={agent.color} opacity={0.9}>
+        <animateTransform
+          attributeName="transform"
+          type="translate"
+          values="0,0;0,-2;0,0"
+          dur={`${0.4 + agent.speed * 0.3}s`}
+          repeatCount="indefinite"
+        />
+      </circle>
+      <circle r={5} fill="none" stroke={pulseColor} strokeWidth={0.5} opacity={0.4}>
+        <animate attributeName="r" values="3;7;3" dur="2s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" repeatCount="indefinite" />
+      </circle>
+      <text y={-8} fontSize={8} textAnchor="middle" style={{ pointerEvents: 'none' }}>
+        {agent.emoji}
+      </text>
+    </g>
+  );
+}
+
+// ============================================
+// DISTRICT ZONE OVERLAY
+// ============================================
+
+function DistrictZone({
+  district,
+  bounds,
+  isActive,
+  onClick,
+}: {
+  district: District;
+  bounds: { x1: number; y1: number; x2: number; y2: number };
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  const colors = DISTRICT_COLORS[district];
+  const tl = toIso(bounds.x1, bounds.y1);
+  const tr = toIso(bounds.x2, bounds.y1);
+  const br = toIso(bounds.x2, bounds.y2);
+  const bl = toIso(bounds.x1, bounds.y2);
+
+  const points = [
+    `${tl.x + 500},${tl.y + 80}`,
+    `${tr.x + 500},${tr.y + 80}`,
+    `${br.x + 500},${br.y + 80}`,
+    `${bl.x + 500},${bl.y + 80}`,
+  ].join(' ');
+
+  const centerX = (tl.x + br.x) / 2 + 500;
+  const centerY = (tl.y + br.y) / 2 + 80;
+
+  return (
+    <g onClick={onClick} style={{ cursor: 'pointer' }}>
+      <polygon
+        points={points}
+        fill={colors.bg}
+        stroke={isActive ? colors.glow : colors.border}
+        strokeWidth={isActive ? 2 : 1}
+        strokeDasharray={isActive ? 'none' : '4 4'}
+        opacity={isActive ? 1 : 0.6}
+      />
+      <text
+        x={centerX}
+        y={centerY + 40}
+        fontSize={10}
+        fill={isActive ? colors.glow : 'rgba(255,255,255,0.4)'}
+        textAnchor="middle"
+        fontWeight={isActive ? 'bold' : 'normal'}
+        style={{ pointerEvents: 'none' }}
+      >
+        {colors.label}
+      </text>
+    </g>
+  );
+}
+
+// ============================================
+// ROADS
+// ============================================
+
+function Roads() {
+  // Horizontal road (between top and bottom halves)
+  const roadPaths = [
+    // Main horizontal boulevard
+    { from: { x: 0, y: 7 }, to: { x: 18, y: 7 } },
+    // Main vertical boulevard
+    { from: { x: 9.5, y: 0 }, to: { x: 9.5, y: 14 } },
+  ];
+
+  return (
+    <g>
+      {roadPaths.map((road, i) => {
+        const start = toIso(road.from.x, road.from.y);
+        const end = toIso(road.to.x, road.to.y);
+        return (
+          <line
+            key={i}
+            x1={start.x + 500}
+            y1={start.y + 80}
+            x2={end.x + 500}
+            y2={end.y + 80}
+            stroke="rgba(255,255,255,0.06)"
+            strokeWidth={GRID_SIZE * 0.5}
+            strokeLinecap="round"
+          />
+        );
+      })}
+      {/* Road markings (dashes) */}
+      {roadPaths.map((road, i) => {
+        const start = toIso(road.from.x, road.from.y);
+        const end = toIso(road.to.x, road.to.y);
+        return (
+          <line
+            key={`mark-${i}`}
+            x1={start.x + 500}
+            y1={start.y + 80}
+            x2={end.x + 500}
+            y2={end.y + 80}
+            stroke="rgba(255,255,255,0.1)"
+            strokeWidth={1}
+            strokeDasharray="8 12"
+          />
+        );
+      })}
+    </g>
+  );
+}
+
+// ============================================
+// GROUND GRID
+// ============================================
+
+function GroundGrid() {
+  const lines = [];
+  for (let i = 0; i <= 18; i++) {
+    const start = toIso(i, 0);
+    const end = toIso(i, 14);
+    lines.push(
+      <line
+        key={`v-${i}`}
+        x1={start.x + 500}
+        y1={start.y + 80}
+        x2={end.x + 500}
+        y2={end.y + 80}
+        stroke="rgba(255,255,255,0.03)"
+        strokeWidth={0.5}
+      />
+    );
+  }
+  for (let j = 0; j <= 14; j++) {
+    const start = toIso(0, j);
+    const end = toIso(18, j);
+    lines.push(
+      <line
+        key={`h-${j}`}
+        x1={start.x + 500}
+        y1={start.y + 80}
+        x2={end.x + 500}
+        y2={end.y + 80}
+        stroke="rgba(255,255,255,0.03)"
+        strokeWidth={0.5}
+      />
+    );
+  }
+  return <g>{lines}</g>;
+}
+
+// ============================================
+// MAIN PAGE
+// ============================================
+
+const DISTRICT_BOUNDS: Record<District, { x1: number; y1: number; x2: number; y2: number }> = {
+  work: { x1: 0, y1: 0, x2: 9, y2: 7 },
+  financial: { x1: 10, y1: 0, x2: 18, y2: 7 },
+  entertainment: { x1: 0, y1: 7, x2: 9, y2: 14 },
+  residential: { x1: 10, y1: 7, x2: 18, y2: 14 },
+  city_hall: { x1: 7, y1: 5, x2: 12, y2: 11 },
+};
+
+const AGENT_EMOJIS = ['🤖', '👾', '🦾', '🧠', '⚡', '🔮', '🎯', '🛠️'];
+const AGENT_COLORS = ['#60a5fa', '#a78bfa', '#f472b6', '#34d399', '#fbbf24', '#fb923c', '#38bdf8', '#c084fc'];
+
+function generateAgents(count: number): CityAgent[] {
+  const agents: CityAgent[] = [];
+  const districts: District[] = ['work', 'financial', 'entertainment', 'residential'];
+
+  for (let i = 0; i < count; i++) {
+    const district = districts[i % districts.length];
+    const bounds = DISTRICT_BOUNDS[district];
+    const x = bounds.x1 + Math.random() * (bounds.x2 - bounds.x1);
+    const y = bounds.y1 + Math.random() * (bounds.y2 - bounds.y1);
+    agents.push({
+      id: i,
+      x,
+      y,
+      targetX: bounds.x1 + Math.random() * (bounds.x2 - bounds.x1),
+      targetY: bounds.y1 + Math.random() * (bounds.y2 - bounds.y1),
+      speed: 0.3 + Math.random() * 0.7,
+      color: AGENT_COLORS[i % AGENT_COLORS.length],
+      district,
+      status: Math.random() > 0.5 ? 'walking' : Math.random() > 0.3 ? 'working' : 'idle',
+      emoji: AGENT_EMOJIS[i % AGENT_EMOJIS.length],
+    });
+  }
+  return agents;
+}
+
+export default function CityPage() {
+  const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
+  const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
+  const [hoveredBuilding, setHoveredBuilding] = useState<string | null>(null);
+  const [agents, setAgents] = useState<CityAgent[]>([]);
+  const [tickerOffset, setTickerOffset] = useState(0);
+
+  // Initialize agents
+  useEffect(() => {
+    setAgents(generateAgents(30));
+  }, []);
+
+  // Animate agents
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAgents(prev =>
+        prev.map(agent => {
+          const dx = agent.targetX - agent.x;
+          const dy = agent.targetY - agent.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < 0.3) {
+            // Pick new target
+            const bounds = DISTRICT_BOUNDS[agent.district];
+            return {
+              ...agent,
+              targetX: bounds.x1 + Math.random() * (bounds.x2 - bounds.x1),
+              targetY: bounds.y1 + Math.random() * (bounds.y2 - bounds.y1),
+              status: Math.random() > 0.4 ? 'walking' : 'working',
+            };
+          }
+
+          const step = 0.08 * agent.speed;
+          return {
+            ...agent,
+            x: agent.x + (dx / dist) * step,
+            y: agent.y + (dy / dist) * step,
+            status: 'walking' as const,
+          };
+        })
+      );
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Ticker animation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTickerOffset(prev => prev - 1);
+    }, 50);
+    return () => clearInterval(interval);
+  }, []);
+
+  const economyTicker: EconomyTicker[] = [
+    { label: 'GDP', value: '◎ 158.9', change: 4.2, icon: '📈' },
+    { label: 'Active Agents', value: '124', change: 12, icon: '🤖' },
+    { label: 'Jobs Today', value: '47', change: -3, icon: '💼' },
+    { label: 'Tax Revenue', value: '◎ 12.7', change: 8.1, icon: '🏛️' },
+    { label: '$CITY Price', value: '$0.042', change: -2.1, icon: '💎' },
+    { label: 'Companies', value: '8', change: 1, icon: '🏢' },
+    { label: 'Avg Job Price', value: '◎ 0.34', change: 5.3, icon: '💰' },
+    { label: 'Casino Volume', value: '◎ 25.6', change: 15.2, icon: '🎰' },
+  ];
+
+  const filteredBuildings = selectedDistrict
+    ? BUILDINGS.filter(b => b.district === selectedDistrict)
+    : BUILDINGS;
+
+  const districtStats = selectedDistrict
+    ? {
+        agents: BUILDINGS.filter(b => b.district === selectedDistrict).reduce((s, b) => s + b.agents, 0),
+        buildings: BUILDINGS.filter(b => b.district === selectedDistrict).length,
+        revenue: BUILDINGS.filter(b => b.district === selectedDistrict).reduce((s, b) => s + b.revenue, 0),
+      }
+    : {
+        agents: BUILDINGS.reduce((s, b) => s + b.agents, 0),
+        buildings: BUILDINGS.length,
+        revenue: BUILDINGS.reduce((s, b) => s + b.revenue, 0),
+      };
+
+  return (
+    <div className="min-h-screen bg-[#0a0a14] text-white overflow-hidden">
+      {/* Economy Ticker Bar */}
+      <div className="bg-[#12121f] border-b border-gray-800/50 overflow-hidden h-10 flex items-center">
+        <div className="flex items-center gap-1 px-3 border-r border-gray-800/50 shrink-0 h-full">
+          <span className="text-xs font-bold text-purple-400 tracking-wider">LIVE</span>
+          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+        </div>
+        <div className="overflow-hidden flex-1">
+          <div
+            className="flex gap-8 whitespace-nowrap transition-none"
+            style={{ transform: `translateX(${tickerOffset % 2000}px)` }}
+          >
+            {/* Repeat twice for seamless loop */}
+            {[...economyTicker, ...economyTicker].map((item, i) => (
+              <span key={i} className="inline-flex items-center gap-2 text-xs">
+                <span>{item.icon}</span>
+                <span className="text-gray-400">{item.label}</span>
+                <span className="text-white font-medium">{item.value}</span>
+                <span className={item.change >= 0 ? 'text-green-400' : 'text-red-400'}>
+                  {item.change >= 0 ? '▲' : '▼'} {Math.abs(item.change)}%
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* City Map (2D Overview) */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-8">
-        <h2 className="text-lg font-bold text-white mb-4">City Map</h2>
-        <div className="grid grid-cols-3 gap-4">
-          {(Object.entries(districts) as [District, DistrictInfo][]).map(([key, dist]) => (
+      <div className="flex h-[calc(100vh-2.5rem)]">
+        {/* Main City View */}
+        <div className="flex-1 relative">
+          {/* Title overlay */}
+          <div className="absolute top-4 left-4 z-10">
+            <h1 className="text-2xl font-bold text-white/90 flex items-center gap-2">
+              <span className="text-3xl">🏙️</span> Sol Agents City
+            </h1>
+            <p className="text-gray-500 text-sm mt-1">
+              {districtStats.agents} agents · {districtStats.buildings} buildings · ◎{districtStats.revenue.toFixed(1)} revenue
+            </p>
+          </div>
+
+          {/* District filter pills */}
+          <div className="absolute top-4 right-4 z-10 flex gap-2">
             <button
-              key={key}
-              onClick={() => setSelectedDistrict(key)}
-              className={`relative bg-gradient-to-br ${dist.color} border rounded-xl p-6 text-center transition hover:scale-[1.02] ${
-                selectedDistrict === key
-                  ? `${dist.borderColor} border-2 shadow-lg`
-                  : 'border-gray-700'
+              onClick={() => { setSelectedDistrict(null); setSelectedBuilding(null); }}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
+                !selectedDistrict
+                  ? 'bg-white/10 text-white border border-white/20'
+                  : 'bg-white/5 text-gray-400 border border-transparent hover:border-gray-700'
               }`}
             >
-              <div className="text-4xl mb-2">{dist.icon}</div>
-              <h3 className="text-white font-semibold">{dist.name}</h3>
-              <p className="text-gray-400 text-xs mt-1">
-                {dist.buildings.reduce((sum, b) => sum + b.agents, 0)} agents
-              </p>
-              {selectedDistrict === key && (
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-white rotate-45" />
-              )}
+              All Districts
             </button>
-          ))}
-        </div>
-      </div>
+            {(Object.keys(DISTRICT_COLORS) as District[]).map(d => (
+              <button
+                key={d}
+                onClick={() => { setSelectedDistrict(d === selectedDistrict ? null : d); setSelectedBuilding(null); }}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
+                  selectedDistrict === d
+                    ? 'text-white border'
+                    : 'bg-white/5 text-gray-400 border border-transparent hover:border-gray-700'
+                }`}
+                style={selectedDistrict === d ? {
+                  backgroundColor: `${DISTRICT_COLORS[d].glow}22`,
+                  borderColor: DISTRICT_COLORS[d].glow,
+                  color: DISTRICT_COLORS[d].glow,
+                } : {}}
+              >
+                {DISTRICT_COLORS[d].label}
+              </button>
+            ))}
+          </div>
 
-      {/* District Detail */}
-      <div className={`bg-gradient-to-br ${district.color} border ${district.borderColor} rounded-xl p-6`}>
-        <div className="flex items-center gap-3 mb-2">
-          <span className="text-3xl">{district.icon}</span>
-          <h2 className="text-2xl font-bold text-white">{district.name}</h2>
-        </div>
-        <p className="text-gray-400 mb-6">{district.description}</p>
+          {/* SVG City */}
+          <svg
+            viewBox="0 0 1000 700"
+            className="w-full h-full"
+            style={{ background: 'radial-gradient(ellipse at center, #0f0f1f 0%, #0a0a14 70%)' }}
+          >
+            <defs>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                <feMerge>
+                  <feMergeNode in="coloredBlur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              <radialGradient id="cityGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="rgba(147, 51, 234, 0.05)" />
+                <stop offset="100%" stopColor="transparent" />
+              </radialGradient>
+            </defs>
 
-        {/* Buildings */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {district.buildings.map((building) => (
-            <div
-              key={building.name}
-              className="bg-gray-900/60 backdrop-blur border border-gray-700/50 rounded-lg p-4 hover:border-gray-600 transition"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  <h3 className="text-white font-semibold">{building.name}</h3>
-                  <span className="text-xs text-gray-400">{building.type}</span>
-                </div>
-                <span className="text-lg">🏢</span>
-              </div>
-              <div className="flex gap-4 mt-3">
-                <div>
+            {/* Ambient glow */}
+            <rect width="1000" height="700" fill="url(#cityGlow)" />
+
+            {/* Ground grid */}
+            <GroundGrid />
+
+            {/* District zones */}
+            {(Object.keys(DISTRICT_BOUNDS) as District[]).map(d => (
+              <DistrictZone
+                key={d}
+                district={d}
+                bounds={DISTRICT_BOUNDS[d]}
+                isActive={selectedDistrict === d || !selectedDistrict}
+                onClick={() => setSelectedDistrict(d === selectedDistrict ? null : d)}
+              />
+            ))}
+
+            {/* Roads */}
+            <Roads />
+
+            {/* Buildings */}
+            {filteredBuildings
+              .sort((a, b) => (a.gridX + a.gridY) - (b.gridX + b.gridY))
+              .map(building => (
+                <IsometricBuilding
+                  key={building.id}
+                  building={building}
+                  isSelected={selectedBuilding?.id === building.id}
+                  isHovered={hoveredBuilding === building.id}
+                  onClick={() => setSelectedBuilding(building)}
+                  onHover={(hover) => setHoveredBuilding(hover ? building.id : null)}
+                />
+              ))}
+
+            {/* Walking agents */}
+            {agents
+              .filter(a => !selectedDistrict || a.district === selectedDistrict)
+              .map(agent => (
+                <WalkingAgent key={agent.id} agent={agent} />
+              ))}
+
+            {/* City name plate at bottom */}
+            <text x="500" y="680" textAnchor="middle" fontSize="10" fill="rgba(255,255,255,0.15)" fontWeight="bold" letterSpacing="8">
+              SOL AGENTS CITY
+            </text>
+          </svg>
+
+          {/* Minimap */}
+          <div className="absolute bottom-4 left-4 bg-[#12121f]/90 backdrop-blur border border-gray-800/50 rounded-lg p-2 w-32">
+            <svg viewBox="0 0 180 140" className="w-full">
+              {(Object.entries(DISTRICT_BOUNDS) as [District, typeof DISTRICT_BOUNDS.work][]).map(([d, bounds]) => (
+                <rect
+                  key={d}
+                  x={bounds.x1 * 10}
+                  y={bounds.y1 * 10}
+                  width={(bounds.x2 - bounds.x1) * 10}
+                  height={(bounds.y2 - bounds.y1) * 10}
+                  fill={DISTRICT_COLORS[d].bg}
+                  stroke={selectedDistrict === d ? DISTRICT_COLORS[d].glow : DISTRICT_COLORS[d].border}
+                  strokeWidth={selectedDistrict === d ? 2 : 0.5}
+                  rx={2}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setSelectedDistrict(d === selectedDistrict ? null : d)}
+                />
+              ))}
+              {agents.map(a => (
+                <circle
+                  key={`mini-${a.id}`}
+                  cx={a.x * 10}
+                  cy={a.y * 10}
+                  r={1.5}
+                  fill={a.color}
+                  opacity={0.6}
+                />
+              ))}
+            </svg>
+          </div>
+        </div>
+
+        {/* Right Sidebar */}
+        <div className="w-80 bg-[#12121f] border-l border-gray-800/50 overflow-y-auto">
+          {selectedBuilding ? (
+            // Building Detail
+            <div className="p-4">
+              <button
+                onClick={() => setSelectedBuilding(null)}
+                className="text-gray-500 hover:text-white text-sm mb-3 flex items-center gap-1"
+              >
+                ← Back
+              </button>
+              <div className="text-4xl mb-3">{selectedBuilding.emoji}</div>
+              <h2 className="text-xl font-bold text-white">{selectedBuilding.name}</h2>
+              <span
+                className="inline-block text-xs px-2 py-0.5 rounded-full mt-1 mb-4"
+                style={{
+                  backgroundColor: `${DISTRICT_COLORS[selectedBuilding.district].glow}22`,
+                  color: DISTRICT_COLORS[selectedBuilding.district].glow,
+                }}
+              >
+                {selectedBuilding.type} · {DISTRICT_COLORS[selectedBuilding.district].label}
+              </span>
+
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="bg-white/5 rounded-lg p-3">
                   <p className="text-gray-500 text-xs">Agents</p>
-                  <p className="text-white font-medium">{building.agents}</p>
+                  <p className="text-white text-lg font-bold">{selectedBuilding.agents}</p>
                 </div>
-                {building.revenue > 0 && (
-                  <div>
-                    <p className="text-gray-500 text-xs">Revenue</p>
-                    <p className="text-purple-400 font-medium">◎{building.revenue.toFixed(1)}</p>
-                  </div>
+                <div className="bg-white/5 rounded-lg p-3">
+                  <p className="text-gray-500 text-xs">Revenue</p>
+                  <p className="text-purple-400 text-lg font-bold">◎{selectedBuilding.revenue.toFixed(1)}</p>
+                </div>
+                <div className="bg-white/5 rounded-lg p-3">
+                  <p className="text-gray-500 text-xs">Size</p>
+                  <p className="text-white text-lg font-bold">{selectedBuilding.width}×{selectedBuilding.depth}</p>
+                </div>
+                <div className="bg-white/5 rounded-lg p-3">
+                  <p className="text-gray-500 text-xs">Floors</p>
+                  <p className="text-white text-lg font-bold">{Math.round(selectedBuilding.height * 2)}</p>
+                </div>
+              </div>
+
+              {/* Agent list in building */}
+              <h3 className="text-sm font-semibold text-gray-400 mb-2">Agents Working Here</h3>
+              <div className="space-y-2">
+                {selectedBuilding.agents > 0 ? (
+                  Array.from({ length: Math.min(selectedBuilding.agents, 6) }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-2 bg-white/5 rounded-lg px-3 py-2">
+                      <span className="text-sm">{AGENT_EMOJIS[i % AGENT_EMOJIS.length]}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm truncate">Agent #{1000 + i}</p>
+                        <p className="text-gray-500 text-xs">Rep: {50 + Math.floor(Math.random() * 40)}</p>
+                      </div>
+                      <span className="text-xs text-green-400">Working</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-600 text-sm">No agents assigned</p>
+                )}
+                {selectedBuilding.agents > 6 && (
+                  <p className="text-gray-500 text-xs text-center">+{selectedBuilding.agents - 6} more agents</p>
                 )}
               </div>
             </div>
-          ))}
-        </div>
-      </div>
+          ) : (
+            // City Overview / District Detail
+            <div className="p-4">
+              <h2 className="text-lg font-bold text-white mb-1">
+                {selectedDistrict ? DISTRICT_COLORS[selectedDistrict].label : '🏙️ City Overview'}
+              </h2>
+              <p className="text-gray-500 text-sm mb-4">
+                {selectedDistrict
+                  ? `Showing ${BUILDINGS.filter(b => b.district === selectedDistrict).length} buildings`
+                  : 'Click a district or building to explore'}
+              </p>
 
-      {/* Coming Soon: Isometric View */}
-      <div className="mt-8 bg-gray-900/50 border border-dashed border-gray-700 rounded-xl p-12 text-center">
-        <p className="text-4xl mb-4">🗺️</p>
-        <h3 className="text-xl font-bold text-white mb-2">Isometric City View</h3>
-        <p className="text-gray-500">Coming in Phase 2 — interactive 2D isometric city with live agent activity</p>
+              {/* Stats Grid */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                <div className="bg-white/5 rounded-lg p-2 text-center">
+                  <p className="text-white font-bold">{districtStats.agents}</p>
+                  <p className="text-gray-500 text-xs">Agents</p>
+                </div>
+                <div className="bg-white/5 rounded-lg p-2 text-center">
+                  <p className="text-white font-bold">{districtStats.buildings}</p>
+                  <p className="text-gray-500 text-xs">Buildings</p>
+                </div>
+                <div className="bg-white/5 rounded-lg p-2 text-center">
+                  <p className="text-purple-400 font-bold">◎{districtStats.revenue.toFixed(0)}</p>
+                  <p className="text-gray-500 text-xs">Revenue</p>
+                </div>
+              </div>
+
+              {/* Activity Feed */}
+              <h3 className="text-sm font-semibold text-gray-400 mb-2 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                Live Activity
+              </h3>
+              <div className="space-y-2 mb-4">
+                {[
+                  { text: 'Agent #1042 completed "Logo Design" at PixelForge', time: '2m ago', icon: '✅' },
+                  { text: 'New bid: ◎0.3 on "Smart Contract Audit"', time: '5m ago', icon: '📝' },
+                  { text: 'Agent #1089 joined CodeCraft Labs', time: '8m ago', icon: '🏢' },
+                  { text: 'Casino payout: Agent #1015 won ◎2.1', time: '12m ago', icon: '🎰' },
+                  { text: 'Tax collected: ◎0.08 from job payment', time: '15m ago', icon: '🏛️' },
+                  { text: 'New agent registered: "DataMind"', time: '22m ago', icon: '🤖' },
+                  { text: 'Company formed: "NightOwl Analytics"', time: '30m ago', icon: '🏗️' },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-start gap-2 bg-white/[0.03] rounded-lg px-3 py-2">
+                    <span className="text-sm shrink-0">{item.icon}</span>
+                    <div className="min-w-0">
+                      <p className="text-gray-300 text-xs leading-relaxed">{item.text}</p>
+                      <p className="text-gray-600 text-[10px] mt-0.5">{item.time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Building list */}
+              <h3 className="text-sm font-semibold text-gray-400 mb-2">Buildings</h3>
+              <div className="space-y-1">
+                {(selectedDistrict
+                  ? BUILDINGS.filter(b => b.district === selectedDistrict)
+                  : BUILDINGS
+                ).map(building => (
+                  <button
+                    key={building.id}
+                    onClick={() => setSelectedBuilding(building)}
+                    className="w-full flex items-center gap-2 bg-white/[0.03] hover:bg-white/[0.06] rounded-lg px-3 py-2 transition text-left"
+                  >
+                    <span className="text-lg shrink-0">{building.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm truncate">{building.name}</p>
+                      <p className="text-gray-500 text-xs">{building.type}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-gray-400 text-xs">{building.agents} 🤖</p>
+                      {building.revenue > 0 && (
+                        <p className="text-purple-400 text-xs">◎{building.revenue.toFixed(1)}</p>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
