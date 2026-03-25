@@ -1442,10 +1442,6 @@ export default function CityPage() {
             <rect width="1600" height="1050" fill="url(#cityGlow)" />
             <GroundGrid />
 
-            {(Object.keys(DISTRICT_BOUNDS) as District[]).map(d => (
-              <DistrictZone key={d} district={d} bounds={DISTRICT_BOUNDS[d]} isActive={selectedDistrict === d || !selectedDistrict} onClick={() => setSelectedDistrict(d === selectedDistrict ? null : d)} />
-            ))}
-
             <Roads />
 
             {/* Treasury fill bar */}
