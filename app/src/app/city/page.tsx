@@ -880,6 +880,7 @@ export default function CityPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [dayTime, setDayTime] = useState(0);
   const [treasuryFill, setTreasuryFill] = useState(15);
+  const [legendOpen, setLegendOpen] = useState(false);
 
   const agentsRef = useRef<CityAgent[]>([]);
   const buildingsRef = useRef<Building[]>(BUILDINGS);
@@ -1421,6 +1422,108 @@ export default function CityPage() {
                 <circle key={`mini-${a.id}`} cx={a.x * 10} cy={a.y * 10} r={1.5} fill={a.color} opacity={0.6} />
               ))}
             </svg>
+          </div>
+
+          {/* Legend */}
+          <div className={`absolute bottom-4 right-4 sm:bottom-4 sm:right-auto sm:left-40 z-10 bg-[#12121f]/95 backdrop-blur border border-gray-800/50 rounded-lg transition-all duration-200 ${legendOpen ? 'w-64 sm:w-72' : 'w-auto'}`}>
+            <button
+              onClick={() => setLegendOpen(!legendOpen)}
+              className="w-full flex items-center justify-between px-3 py-2 text-xs text-gray-400 hover:text-white transition"
+            >
+              <span className="flex items-center gap-1.5 font-medium">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                Legend
+              </span>
+              <span className={`transition-transform duration-200 ${legendOpen ? 'rotate-180' : ''}`}>▾</span>
+            </button>
+
+            {legendOpen && (
+              <div className="px-3 pb-3 space-y-3">
+                {/* Districts */}
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5 font-semibold">Districts</p>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                    {([
+                      ['work', '🟣', 'Work — jobs & studios'],
+                      ['financial', '🔵', 'Financial — banks & trading'],
+                      ['entertainment', '🟡', 'Entertainment — casinos'],
+                      ['residential', '🟢', 'Residential — agent homes'],
+                      ['city_hall', '⚪', 'City Hall — gov & treasury'],
+                    ] as const).map(([d, icon, label]) => (
+                      <div key={d} className="flex items-center gap-1.5">
+                        <span className="text-[10px]">{icon}</span>
+                        <span className="text-[10px] text-gray-300">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Agent Roles */}
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5 font-semibold">Agent Roles</p>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                    {(Object.entries(ROLE_COLORS) as [AgentRole, string][]).map(([role, color]) => (
+                      <div key={role} className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                        <span className="text-[10px] text-gray-300 capitalize">{ROLE_ICONS[role]} {role}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Status */}
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5 font-semibold">Agent Status</p>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                    {([
+                      ['walking', '🔵', 'Walking — en route'],
+                      ['working', '🟢', 'Working — on a job'],
+                      ['idle', '⚫', 'Idle — available'],
+                      ['gambling', '🟡', 'Gambling — at casino'],
+                    ] as const).map(([status, icon, label]) => (
+                      <div key={status} className="flex items-center gap-1.5">
+                        <span className="text-[10px]">{icon}</span>
+                        <span className="text-[10px] text-gray-300">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Money Flow */}
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5 font-semibold">Money Flow</p>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-green-400">+$XX</span>
+                      <span className="text-[10px] text-gray-300">Earnings from jobs</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-red-400">-$XX</span>
+                      <span className="text-[10px] text-gray-300">Tax to treasury / casino losses</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px]">📊</span>
+                      <span className="text-[10px] text-gray-300">Treasury bar = collected taxes</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Day/Night */}
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5 font-semibold">Day/Night Cycle</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px]">🌅</span>
+                    <span className="text-[10px] text-gray-500">→</span>
+                    <span className="text-[10px]">☀️</span>
+                    <span className="text-[10px] text-gray-500">→</span>
+                    <span className="text-[10px]">🌇</span>
+                    <span className="text-[10px] text-gray-500">→</span>
+                    <span className="text-[10px]">🌙</span>
+                    <span className="text-[10px] text-gray-400 ml-1">~3 min cycle</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
