@@ -682,17 +682,171 @@ function Roads() {
   );
 }
 
-function GroundGrid() {
-  const lines = [];
-  for (let i = 0; i <= 18; i++) {
-    const start = toIso(i, 0); const end = toIso(i, 14);
-    lines.push(<line key={`v-${i}`} x1={start.x + 780} y1={start.y + 200} x2={end.x + 780} y2={end.y + 200} stroke="rgba(255,255,255,0.05)" strokeWidth={0.5} />);
+function getDistrictForTile(x: number, y: number): District | null {
+  const ch = DISTRICT_BOUNDS.city_hall;
+  if (x >= ch.x1 && x < ch.x2 && y >= ch.y1 && y < ch.y2) return 'city_hall';
+  for (const d of ['work', 'financial', 'entertainment', 'residential'] as District[]) {
+    const b = DISTRICT_BOUNDS[d];
+    if (x >= b.x1 && x < b.x2 && y >= b.y1 && y < b.y2) return d;
   }
-  for (let j = 0; j <= 14; j++) {
-    const start = toIso(0, j); const end = toIso(18, j);
-    lines.push(<line key={`h-${j}`} x1={start.x + 780} y1={start.y + 200} x2={end.x + 780} y2={end.y + 200} stroke="rgba(255,255,255,0.05)" strokeWidth={0.5} />);
+  return null;
+}
+
+const DISTRICT_TILE_TINTS: Record<District, string> = {
+  residential:   'rgba(20, 70, 30, 0.07)',
+  financial:     'rgba(10, 20, 55, 0.1)',
+  entertainment: 'rgba(70, 40, 5, 0.08)',
+  work:          'rgba(40, 30, 65, 0.07)',
+  city_hall:     'rgba(85, 85, 105, 0.05)',
+};
+
+function GroundGrid({ dayPhase }: { dayPhase: ReturnType<typeof getDayPhase> }) {
+  const tiles = [];
+
+  // 1. Isometric diamond tiles with checkerboard + district tints
+  for (let gx = 0; gx < 18; gx++) {
+    for (let gy = 0; gy < 14; gy++) {
+      const tl = toIso(gx, gy);
+      const tr = toIso(gx + 1, gy);
+      const br = toIso(gx + 1, gy + 1);
+      const bl = toIso(gx, gy + 1);
+      const pts = [tl, tr, br, bl].map(p => `${p.x + 780},${p.y + 200}`).join(' ');
+      const isEven = (gx + gy) % 2 === 0;
+      tiles.push(
+        <polygon key={`t${gx}-${gy}`} points={pts}
+          fill={isEven ? 'rgba(255,255,255,0.022)' : 'rgba(255,255,255,0.038)'}
+          stroke="rgba(255,255,255,0.028)" strokeWidth={0.4} />
+      );
+      const district = getDistrictForTile(gx, gy);
+      if (district) {
+        tiles.push(<polygon key={`d${gx}-${gy}`} points={pts} fill={DISTRICT_TILE_TINTS[district]} />);
+      }
+    }
   }
-  return <g>{lines}</g>;
+
+  // 2. Trees (residential area + road edges)
+  const treePositions = [
+    { x: 10.5, y: 7.5 }, { x: 12.3, y: 7.3 }, { x: 16.4, y: 7.5 },
+    { x: 10.4, y: 10.5 }, { x: 12.8, y: 12.6 }, { x: 16.5, y: 11.5 },
+    { x: 17.3, y: 9.3 }, { x: 15.8, y: 13.3 },
+    { x: 2.5, y: 6.6 }, { x: 6.5, y: 6.6 },
+    { x: 9.1, y: 1.5 }, { x: 9.1, y: 4.5 }, { x: 9.1, y: 10.5 },
+  ];
+  for (const t of treePositions) {
+    const pos = toIso(t.x, t.y);
+    const ox = pos.x + 780;
+    const oy = pos.y + 200;
+    tiles.push(
+      <g key={`tree-${t.x}-${t.y}`}>
+        <rect x={ox - 2} y={oy - 3} width={4} height={6} rx={1} fill="#4a3010" opacity={0.55} />
+        <ellipse cx={ox} cy={oy - 10} rx={9} ry={5.5} fill="#1a3a18" opacity={0.48} />
+        <ellipse cx={ox} cy={oy - 14} rx={6.5} ry={3.8} fill="#226a20" opacity={0.48} />
+        <ellipse cx={ox} cy={oy - 17} rx={4} ry={2.5} fill="#2a7a28" opacity={0.38} />
+      </g>
+    );
+  }
+
+  // 3. Park benches (residential area)
+  const benchPositions = [{ x: 12.5, y: 10.5 }, { x: 15.5, y: 11.5 }, { x: 13.5, y: 13 }];
+  for (const b of benchPositions) {
+    const pos = toIso(b.x, b.y);
+    const ox = pos.x + 780;
+    const oy = pos.y + 200;
+    tiles.push(
+      <g key={`bench-${b.x}-${b.y}`}>
+        <rect x={ox - 6} y={oy - 2} width={12} height={3} rx={1} fill="#5a3e20" opacity={0.5} />
+        <rect x={ox - 6} y={oy - 5} width={12} height={2} rx={0.5} fill="#7a5a30" opacity={0.38} />
+        <rect x={ox - 5} y={oy + 1} width={2} height={3} fill="#4a3010" opacity={0.4} />
+        <rect x={ox + 3} y={oy + 1} width={2} height={3} fill="#4a3010" opacity={0.4} />
+      </g>
+    );
+  }
+
+  // 4. Streetlights along roads — brighter at night
+  const lightPositions = [
+    { x: 2, y: 7 }, { x: 5, y: 7 }, { x: 8, y: 7 }, { x: 12, y: 7 }, { x: 15, y: 7 },
+    { x: 9.5, y: 2 }, { x: 9.5, y: 5 }, { x: 9.5, y: 10 }, { x: 9.5, y: 13 },
+  ];
+  const lightBrightness = dayPhase.phase === 'night' ? 0.85 :
+                           dayPhase.phase === 'dusk'  ? 0.55 :
+                           dayPhase.phase === 'dawn'  ? 0.38 : 0.08;
+  const isLit = lightBrightness > 0.12;
+  for (const sl of lightPositions) {
+    const pos = toIso(sl.x, sl.y);
+    const ox = pos.x + 780;
+    const oy = pos.y + 200;
+    tiles.push(
+      <g key={`sl-${sl.x}-${sl.y}`}>
+        <line x1={ox} y1={oy} x2={ox} y2={oy - 14} stroke="#555" strokeWidth={1} opacity={0.4} />
+        <circle cx={ox} cy={oy - 14} r={2.5} fill={isLit ? '#ffffcc' : '#777'} opacity={0.85} />
+        {isLit && (
+          <circle cx={ox} cy={oy - 14} r={8} fill="rgba(255,255,180,0.10)" opacity={lightBrightness} filter="url(#glow)" />
+        )}
+      </g>
+    );
+  }
+
+  // 5. Fountain near City Hall
+  const fp = toIso(9.5, 8.5);
+  const fox = fp.x + 780;
+  const foy = fp.y + 200;
+  tiles.push(
+    <g key="fountain">
+      <ellipse cx={fox} cy={foy} rx={14} ry={8} fill="none" stroke="rgba(80,140,255,0.22)" strokeWidth={1.5} />
+      <ellipse cx={fox} cy={foy} rx={11} ry={6.5} fill="rgba(40,80,200,0.08)" />
+      <circle cx={fox} cy={foy - 4} r={2} fill="rgba(100,180,255,0.32)">
+        <animate attributeName="r" values="1;3.5;1" dur="1.8s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.5;0.12;0.5" dur="1.8s" repeatCount="indefinite" />
+      </circle>
+      <circle cx={fox - 3} cy={foy - 2} r={1.2} fill="rgba(150,200,255,0.22)">
+        <animate attributeName="r" values="0.8;2.5;0.8" dur="2.2s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.4;0.1;0.4" dur="2.2s" repeatCount="indefinite" />
+      </circle>
+      <circle cx={fox + 3} cy={foy - 2} r={1} fill="rgba(150,200,255,0.22)">
+        <animate attributeName="r" values="0.5;2;0.5" dur="1.5s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.4;0.1;0.4" dur="1.5s" repeatCount="indefinite" />
+      </circle>
+    </g>
+  );
+
+  return <g>{tiles}</g>;
+}
+
+function BuildingShadows({ buildings, dayPhase }: { buildings: Building[]; dayPhase: ReturnType<typeof getDayPhase> }) {
+  const phase = dayPhase.phase;
+  if (phase === 'night') return null;
+
+  const shadowFactor  = phase === 'dawn' ? 2.2  : phase === 'dusk' ? 1.6  : 0.7;
+  const shadowOpacity = phase === 'dawn' ? 0.15 : phase === 'dusk' ? 0.13 : 0.18;
+  // Sun direction: dawn = east (shadows go west/left), dusk = west (shadows go right)
+  const shadowDirX    = phase === 'dawn' ? -0.4 : phase === 'dusk' ? 0.5  : 0.15;
+  const shadowDirY    = 0.55;
+
+  return (
+    <g opacity={shadowOpacity}>
+      {buildings.map(b => {
+        const pos = toIso(b.gridX, b.gridY);
+        const ox = pos.x + 780;
+        const oy = pos.y + 200;
+        const w = b.width  * GRID_SIZE * 0.866;
+        const d = b.depth  * GRID_SIZE * 0.866;
+        const h = b.height * GRID_SIZE * 0.6;
+
+        const shadowLen = h * shadowFactor;
+        const sdx = shadowDirX * shadowLen;
+        const sdy = shadowDirY * shadowLen;
+
+        // Footprint bottom-left (SW) and bottom-right (SE) in screen space
+        const swx = ox + d * 0.5;
+        const swy = oy + d * 0.29;
+        const sex = ox + w * 0.5 + d * 0.5;
+        const sey = oy + d * 0.29;
+
+        const pts = `${swx},${swy} ${sex},${sey} ${sex + sdx},${sey + sdy} ${swx + sdx},${swy + sdy}`;
+        return <polygon key={`shd-${b.id}`} points={pts} fill="rgba(0,0,0,1)" />;
+      })}
+    </g>
+  );
 }
 
 // ============================================
@@ -1440,7 +1594,8 @@ export default function CityPage() {
             </defs>
 
             <rect width="1600" height="1050" fill="url(#cityGlow)" />
-            <GroundGrid />
+            <GroundGrid dayPhase={dayPhase} />
+            <BuildingShadows buildings={buildings} dayPhase={dayPhase} />
 
             <Roads />
 
