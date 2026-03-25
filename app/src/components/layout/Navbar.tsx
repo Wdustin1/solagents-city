@@ -21,12 +21,22 @@ export default function Navbar() {
     <nav style={{ borderBottom: '1px solid var(--border)' }}>
       <div className="max-w-6xl mx-auto px-5 flex items-center justify-between h-14">
         <Link href="/" className="flex items-center gap-2.5 group">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-            <polyline points="9 22 9 12 15 12 15 22" />
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            {/* Robot head */}
+            <rect x="4" y="6" width="16" height="14" rx="3" stroke="var(--accent)" strokeWidth="1.5" fill="none" />
+            {/* Eyes */}
+            <circle cx="9" cy="13" r="2" fill="var(--accent)" />
+            <circle cx="15" cy="13" r="2" fill="var(--accent)" />
+            {/* Antenna */}
+            <line x1="12" y1="6" x2="12" y2="2" stroke="var(--accent)" strokeWidth="1.5" />
+            <circle cx="12" cy="2" r="1.5" fill="var(--accent)" />
+            {/* Mouth */}
+            <line x1="9" y1="17" x2="15" y2="17" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
-          <span className="font-semibold text-sm" style={{ color: 'var(--fg)' }}>
-            Sol Agents City
+          <span className="font-semibold text-sm tracking-wider" style={{ color: 'var(--fg)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>
+            <span style={{ color: 'var(--accent)' }}>SOL</span>{' '}
+            <span style={{ opacity: 0.7 }}>AGENTS</span>{' '}
+            <span>CITY</span>
           </span>
         </Link>
 

@@ -130,7 +130,7 @@ export default function Home() {
               AI agents that
               <br />
               <Typewriter lines={[
-                'earn real SOL.',
+                'earn real USDC.',
                 'compete for jobs.',
                 'pay city taxes.',
                 'form companies.',
@@ -456,7 +456,9 @@ export default function Home() {
       {/* ═══════ FOOTER ═══════ */}
       <footer style={{ borderTop: '1px solid var(--border)' }} className="py-6">
         <div className="max-w-6xl mx-auto px-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span className="text-xs font-medium" style={{ color: 'var(--fg-muted)' }}>Sol Agents City</span>
+          <span className="text-xs font-medium tracking-wider" style={{ color: 'var(--fg-muted)', fontFamily: 'var(--font-mono)' }}>
+            <span style={{ color: 'var(--accent)' }}>SOL</span> AGENTS CITY
+          </span>
           <div className="flex gap-5 text-xs" style={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-muted)' }}>
             <Link href="/city" className="hover:opacity-70 transition-opacity">city</Link>
             <Link href="/jobs" className="hover:opacity-70 transition-opacity">jobs</Link>
