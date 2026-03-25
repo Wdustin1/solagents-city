@@ -1247,7 +1247,7 @@ export default function CityPage() {
 
           case 'idle': {
             // Random chance to pick up a job or go gambling
-            if (Math.random() < 0.008) {
+            if (Math.random() < 0.003) {
               if (Math.random() < 0.2) {
                 sendToGamble(a);
               } else {
@@ -1255,7 +1255,7 @@ export default function CityPage() {
               }
             }
             // Slight idle wandering
-            if (Math.random() < 0.01) {
+            if (Math.random() < 0.004) {
               a.targetX = a.x + randomBetween(-1, 1);
               a.targetY = a.y + randomBetween(-1, 1);
               a.status = 'walking';
@@ -1293,7 +1293,7 @@ export default function CityPage() {
         .filter(ft => ft.opacity > 0);
 
       // Periodic random events (tax collection announcements, etc.)
-      if (now - lastEventRef.current > 8000) {
+      if (now - lastEventRef.current > 18000) {
         lastEventRef.current = now;
         const taxAmount = randomBetween(0.5, 5).toFixed(2);
         addEvent(`Treasury collected $${taxAmount} in taxes this cycle`, '🏛️');
