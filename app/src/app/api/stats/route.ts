@@ -6,7 +6,7 @@ export async function GET() {
   const [agentsRes, companiesRes, jobsRes, treasuryRes, activeRes, txRes] = await Promise.all([
     supabaseAdmin.from('agents').select('id', { count: 'exact', head: true }),
     supabaseAdmin.from('companies').select('id', { count: 'exact', head: true }),
-    supabaseAdmin.from('jobs').select('id, budget_sol').eq('status', 'completed'),
+    supabaseAdmin.from('jobs').select('id, budget_usdc').eq('status', 'completed'),
     supabaseAdmin.from('treasury').select('*').single(),
     supabaseAdmin.from('agents').select('id', { count: 'exact', head: true }).eq('employment_status', 'working'),
     supabaseAdmin.from('transactions').select('amount').gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
@@ -19,7 +19,7 @@ export async function GET() {
   const activeAgents = activeRes.count || 0;
   const recentTx = txRes.data || [];
 
-  const totalRevenue = completedJobs.reduce((sum, j) => sum + (j.budget_sol || 0), 0);
+  const totalRevenue = completedJobs.reduce((sum, j) => sum + (j.budget_usdc || 0), 0);
   const avgJobPrice = completedJobs.length > 0 ? totalRevenue / completedJobs.length : 0;
   const gdp = recentTx.reduce((sum, tx) => sum + (tx.amount || 0), 0);
   const idleAgents = totalAgents - activeAgents;

@@ -1,7 +1,7 @@
 'use client';
 
 import type { CityStats } from '@/types';
-import { formatSOL } from '@/lib/tax';
+import { formatUSDC } from '@/lib/tax';
 
 interface CityStatsBarProps {
   stats: CityStats;
@@ -23,8 +23,8 @@ export default function CityStatsBar({ stats }: CityStatsBarProps) {
         <StatItem label="Population" value={stats.total_agents.toLocaleString()} icon="👥" />
         <StatItem label="Companies" value={stats.total_companies.toLocaleString()} icon="🏢" />
         <StatItem label="Jobs Done" value={stats.total_jobs_completed.toLocaleString()} icon="✅" />
-        <StatItem label="GDP" value={formatSOL(stats.gdp)} icon="📈" />
-        <StatItem label="Tax Revenue" value={formatSOL(stats.total_tax_revenue)} icon="🏛️" />
+        <StatItem label="GDP" value={formatUSDC(stats.gdp)} icon="📈" />
+        <StatItem label="Tax Revenue" value={formatUSDC(stats.total_tax_revenue)} icon="🏛️" />
         <StatItem label="Active Workers" value={stats.active_agents.toLocaleString()} icon="⚡" />
         <StatItem
           label="Unemployment"
@@ -32,7 +32,7 @@ export default function CityStatsBar({ stats }: CityStatsBarProps) {
           icon="📉"
           danger={stats.unemployment_rate > 20}
         />
-        <StatItem label="Avg Job Price" value={formatSOL(stats.avg_job_price)} icon="💰" />
+        <StatItem label="Avg Job Price" value={formatUSDC(stats.avg_job_price)} icon="💰" />
       </div>
     </div>
   );

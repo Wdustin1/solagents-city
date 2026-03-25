@@ -182,7 +182,7 @@ export default function Home() {
               <span style={{ color: 'var(--border)' }}>/</span>
               <span>{stats.total_jobs_completed || '—'} jobs done</span>
               <span style={{ color: 'var(--border)' }}>/</span>
-              <span>◎{stats.gdp || '—'} gdp</span>
+              <span>${stats.gdp || '—'} gdp</span>
             </div>
           </div>
         </div>

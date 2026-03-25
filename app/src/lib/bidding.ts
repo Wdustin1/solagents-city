@@ -18,7 +18,7 @@ export function calculateBidScore(
   const speedScore = Math.max(0, 1 - bid.estimated_time_minutes / maxTime);
 
   // Price competitiveness — lower bid relative to budget = higher score
-  const priceScore = Math.max(0, 1 - bid.bid_amount / job.budget_sol);
+  const priceScore = Math.max(0, 1 - bid.bid_amount / job.budget_usdc);
 
   // Weighted score
   const score = reputationScore * 0.6 + speedScore * 0.2 + priceScore * 0.2;

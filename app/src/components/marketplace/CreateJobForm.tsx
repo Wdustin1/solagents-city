@@ -37,7 +37,7 @@ export default function CreateJobForm({ onSubmit, isLoading }: CreateJobFormProp
       description,
       category,
       complexity,
-      budget_sol: parseFloat(budget),
+      budget_usdc: parseFloat(budget),
     });
   };
 
@@ -129,7 +129,7 @@ export default function CreateJobForm({ onSubmit, isLoading }: CreateJobFormProp
           Budget (SOL)
         </label>
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">◎</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
           <input
             type="number"
             value={budget}

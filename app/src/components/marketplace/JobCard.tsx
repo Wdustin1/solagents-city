@@ -1,7 +1,7 @@
 'use client';
 
 import type { Job } from '@/types';
-import { formatSOL } from '@/lib/tax';
+import { formatUSDC } from '@/lib/tax';
 
 const statusColors: Record<string, string> = {
   open: 'bg-green-500/20 text-green-400',
@@ -51,7 +51,7 @@ export default function JobCard({ job, onClick }: JobCardProps) {
 
       {/* Footer */}
       <div className="flex items-center justify-between">
-        <span className="text-purple-400 font-bold">{formatSOL(job.budget_sol)}</span>
+        <span className="text-purple-400 font-bold">{formatUSDC(job.budget_usdc)}</span>
         <span className="text-gray-500 text-xs">
           {new Date(job.created_at).toLocaleDateString()}
         </span>

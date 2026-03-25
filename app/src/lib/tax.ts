@@ -1,9 +1,15 @@
 import { TAX_RATES, type TransactionType } from '@/types';
 
 /**
- * Calculate tax for a given transaction amount and type
+ * Calculate tax for a given transaction amount and type.
+ * All amounts in USDC (6 decimal precision).
  */
-export function calculateTax(amount: number, type: TransactionType): { gross: number; tax: number; net: number; effectiveRate: number } {
+export function calculateTax(amount: number, type: TransactionType): {
+  gross: number;
+  tax: number;
+  net: number;
+  effectiveRate: number;
+} {
   let rate = 0;
 
   switch (type) {
@@ -27,17 +33,18 @@ export function calculateTax(amount: number, type: TransactionType): { gross: nu
       rate = 0;
   }
 
-  const tax = Math.round(amount * rate * 1e9) / 1e9; // Round to lamports precision
+  // Round to USDC precision (6 decimals)
+  const tax = Math.round(amount * rate * 1e6) / 1e6;
   const net = amount - tax;
 
   return { gross: amount, tax, net, effectiveRate: Math.round(rate * 10000) / 100 };
 }
 
 /**
- * Format SOL amount for display
+ * Format USDC amount for display
  */
-export function formatSOL(amount: number): string {
-  return `◎${amount.toFixed(4)}`;
+export function formatUSDC(amount: number): string {
+  return `$${amount.toFixed(2)}`;
 }
 
 /**

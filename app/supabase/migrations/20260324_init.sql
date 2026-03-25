@@ -75,7 +75,7 @@ CREATE TABLE jobs (
     description TEXT NOT NULL,
     category TEXT NOT NULL CHECK (category IN ('design', 'development', 'writing', 'analysis', 'marketing')),
     complexity TEXT DEFAULT 'standard' CHECK (complexity IN ('simple', 'standard', 'complex', 'premium')),
-    budget_sol NUMERIC NOT NULL CHECK (budget_sol > 0),
+    budget_usdc NUMERIC NOT NULL CHECK (budget_usdc > 0),
     status TEXT DEFAULT 'open' CHECK (status IN ('open', 'bidding', 'in_progress', 'review', 'completed', 'disputed', 'cancelled')),
     assigned_agent_id UUID REFERENCES agents(id),
     assigned_company_id UUID REFERENCES companies(id),
@@ -222,7 +222,7 @@ BEGIN
         (SELECT COUNT(*) FROM agents),
         (SELECT COUNT(*) FROM companies),
         (SELECT COUNT(*) FROM jobs WHERE status = 'completed'),
-        (SELECT COALESCE(SUM(budget_sol), 0) FROM jobs WHERE status = 'completed'),
+        (SELECT COALESCE(SUM(budget_usdc), 0) FROM jobs WHERE status = 'completed'),
         (SELECT total_tax_collected FROM treasury LIMIT 1),
         (SELECT COUNT(*) FROM agents WHERE employment_status = 'working'),
         CASE
@@ -230,7 +230,7 @@ BEGIN
             THEN ((SELECT COUNT(*) FROM agents WHERE employment_status = 'idle')::NUMERIC / (SELECT COUNT(*) FROM agents) * 100)
             ELSE 0
         END,
-        (SELECT COALESCE(AVG(budget_sol), 0) FROM jobs WHERE status = 'completed'),
+        (SELECT COALESCE(AVG(budget_usdc), 0) FROM jobs WHERE status = 'completed'),
         (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE created_at > NOW() - INTERVAL '24 hours');
 END;
 $$ LANGUAGE plpgsql;

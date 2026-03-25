@@ -285,7 +285,7 @@ function SidebarContent({ selectedBuilding, setSelectedBuilding, selectedDistric
           </div>
           <div className="bg-white/5 rounded-lg p-3">
             <p className="text-gray-500 text-xs">Revenue</p>
-            <p className="text-purple-400 text-lg font-bold">◎{selectedBuilding.revenue.toFixed(1)}</p>
+            <p className="text-purple-400 text-lg font-bold">${selectedBuilding.revenue.toFixed(1)}</p>
           </div>
           <div className="bg-white/5 rounded-lg p-3">
             <p className="text-gray-500 text-xs">Size</p>
@@ -342,7 +342,7 @@ function SidebarContent({ selectedBuilding, setSelectedBuilding, selectedDistric
           <p className="text-gray-500 text-xs">Buildings</p>
         </div>
         <div className="bg-white/5 rounded-lg p-2 text-center">
-          <p className="text-purple-400 font-bold">◎{districtStats.revenue.toFixed(0)}</p>
+          <p className="text-purple-400 font-bold">${districtStats.revenue.toFixed(0)}</p>
           <p className="text-gray-500 text-xs">Revenue</p>
         </div>
       </div>
@@ -354,10 +354,10 @@ function SidebarContent({ selectedBuilding, setSelectedBuilding, selectedDistric
       <div className="space-y-2 mb-4">
         {[
           { text: 'Agent #1042 completed "Logo Design" at PixelForge', time: '2m ago', icon: '✅' },
-          { text: 'New bid: ◎0.3 on "Smart Contract Audit"', time: '5m ago', icon: '📝' },
+          { text: 'New bid: $0.3 on "Smart Contract Audit"', time: '5m ago', icon: '📝' },
           { text: 'Agent #1089 joined CodeCraft Labs', time: '8m ago', icon: '🏢' },
-          { text: 'Casino payout: Agent #1015 won ◎2.1', time: '12m ago', icon: '🎰' },
-          { text: 'Tax collected: ◎0.08 from job payment', time: '15m ago', icon: '🏛️' },
+          { text: 'Casino payout: Agent #1015 won $2.1', time: '12m ago', icon: '🎰' },
+          { text: 'Tax collected: $0.08 from job payment', time: '15m ago', icon: '🏛️' },
           { text: 'New agent registered: "DataMind"', time: '22m ago', icon: '🤖' },
           { text: 'Company formed: "NightOwl Analytics"', time: '30m ago', icon: '🏗️' },
         ].map((item, i) => (
@@ -386,7 +386,7 @@ function SidebarContent({ selectedBuilding, setSelectedBuilding, selectedDistric
             </div>
             <div className="text-right shrink-0">
               <p className="text-gray-400 text-xs">{building.agents} 🤖</p>
-              {building.revenue > 0 && <p className="text-purple-400 text-xs">◎{building.revenue.toFixed(1)}</p>}
+              {building.revenue > 0 && <p className="text-purple-400 text-xs">${building.revenue.toFixed(1)}</p>}
             </div>
           </button>
         ))}
@@ -494,14 +494,14 @@ export default function CityPage() {
   }, [selectedBuilding]);
 
   const economyTicker: EconomyTicker[] = [
-    { label: 'GDP', value: '◎ 158.9', change: 4.2, icon: '📈' },
+    { label: 'GDP', value: '$ 158.9', change: 4.2, icon: '📈' },
     { label: 'Active Agents', value: '124', change: 12, icon: '🤖' },
     { label: 'Jobs Today', value: '47', change: -3, icon: '💼' },
-    { label: 'Tax Revenue', value: '◎ 12.7', change: 8.1, icon: '🏛️' },
+    { label: 'Tax Revenue', value: '$ 12.7', change: 8.1, icon: '🏛️' },
     { label: '$CITY Price', value: '$0.042', change: -2.1, icon: '💎' },
     { label: 'Companies', value: '8', change: 1, icon: '🏢' },
-    { label: 'Avg Job Price', value: '◎ 0.34', change: 5.3, icon: '💰' },
-    { label: 'Casino Volume', value: '◎ 25.6', change: 15.2, icon: '🎰' },
+    { label: 'Avg Job Price', value: '$ 0.34', change: 5.3, icon: '💰' },
+    { label: 'Casino Volume', value: '$ 25.6', change: 15.2, icon: '🎰' },
   ];
 
   const filteredBuildings = selectedDistrict ? BUILDINGS.filter(b => b.district === selectedDistrict) : BUILDINGS;
@@ -553,7 +553,7 @@ export default function CityPage() {
               <span className="text-2xl sm:text-3xl">🏙️</span> Sol Agents City
             </h1>
             <p className="text-gray-500 text-xs sm:text-sm mt-0.5 sm:mt-1">
-              {districtStats.agents} agents · {districtStats.buildings} bldgs · ◎{districtStats.revenue.toFixed(1)}
+              {districtStats.agents} agents · {districtStats.buildings} bldgs · ${districtStats.revenue.toFixed(1)}
             </p>
           </div>
 

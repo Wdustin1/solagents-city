@@ -36,11 +36,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const body = await request.json();
 
-  const { title, description, category, complexity, budget_sol, requester_wallet } = body;
+  const { title, description, category, complexity, budget_usdc, requester_wallet } = body;
 
-  if (!title || !description || !category || !budget_sol || !requester_wallet) {
+  if (!title || !description || !category || !budget_usdc || !requester_wallet) {
     return NextResponse.json(
-      { error: 'title, description, category, budget_sol, and requester_wallet are required' },
+      { error: 'title, description, category, budget_usdc, and requester_wallet are required' },
       { status: 400 }
     );
   }
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       description,
       category,
       complexity: complexity || 'standard',
-      budget_sol,
+      budget_usdc,
       requester_wallet,
       status: 'bidding',
       bidding_deadline: biddingDeadline,

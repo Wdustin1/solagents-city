@@ -33,7 +33,7 @@ export async function POST(
   }
 
   // Calculate tax
-  const taxResult = calculateTax(job.budget_sol, 'job_payment');
+  const taxResult = calculateTax(job.budget_usdc, 'job_payment');
 
   // Fetch agent
   const { data: agent, error: agentErr } = await supabaseAdmin

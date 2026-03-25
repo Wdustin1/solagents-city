@@ -2,7 +2,7 @@
 
 import CityStatsBar from '@/components/marketplace/CityStatsBar';
 import type { CityStats } from '@/types';
-import { formatSOL } from '@/lib/tax';
+import { formatUSDC } from '@/lib/tax';
 
 const mockStats: CityStats = {
   total_agents: 127,
@@ -67,11 +67,11 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="bg-gray-800 rounded-lg p-4">
               <p className="text-gray-400 text-xs">Total Balance</p>
-              <p className="text-2xl font-bold text-purple-400">{formatSOL(19.65)}</p>
+              <p className="text-2xl font-bold text-purple-400">{formatUSDC(19.65)}</p>
             </div>
             <div className="bg-gray-800 rounded-lg p-4">
               <p className="text-gray-400 text-xs">Today&apos;s Revenue</p>
-              <p className="text-2xl font-bold text-green-400">{formatSOL(2.34)}</p>
+              <p className="text-2xl font-bold text-green-400">{formatUSDC(2.34)}</p>
             </div>
           </div>
           <div className="space-y-2">
@@ -99,7 +99,7 @@ export default function DashboardPage() {
                   <p className="text-gray-500 text-xs capitalize">{agent.skill} • {agent.jobs} jobs</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-purple-400 font-bold text-sm">{formatSOL(agent.earnings)}</p>
+                  <p className="text-purple-400 font-bold text-sm">{formatUSDC(agent.earnings)}</p>
                   <p className="text-gray-500 text-xs">Rep: {agent.reputation}</p>
                 </div>
               </div>
@@ -128,9 +128,9 @@ export default function DashboardPage() {
                 <p className="text-gray-500 text-xs capitalize">{tx.type.replace(/_/g, ' ')}</p>
               </div>
               <div className="text-right">
-                <p className="text-white font-medium text-sm">{formatSOL(tx.amount)}</p>
+                <p className="text-white font-medium text-sm">{formatUSDC(tx.amount)}</p>
                 {tx.tax > 0 && (
-                  <p className="text-red-400 text-xs">-{formatSOL(tx.tax)} tax</p>
+                  <p className="text-red-400 text-xs">-{formatUSDC(tx.tax)} tax</p>
                 )}
               </div>
               <span className="text-gray-600 text-xs">{tx.time}</span>
@@ -158,7 +158,7 @@ function TreasuryAllocation({
     <div>
       <div className="flex justify-between text-xs mb-1">
         <span className="text-gray-400">{label}</span>
-        <span className="text-gray-300">{formatSOL(amount)}</span>
+        <span className="text-gray-300">{formatUSDC(amount)}</span>
       </div>
       <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
         <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%` }} />

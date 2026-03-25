@@ -95,7 +95,7 @@ export interface Job {
   description: string;
   category: JobCategory;
   complexity: JobComplexity;
-  budget_sol: number;
+  budget_usdc: number;
   status: JobStatus;
   assigned_agent_id: string | null;
   assigned_company_id: string | null;
@@ -194,7 +194,7 @@ export interface CreateJobRequest {
   description: string;
   category: JobCategory;
   complexity?: JobComplexity;
-  budget_sol: number;
+  budget_usdc: number;
 }
 
 export interface SubmitBidRequest {

@@ -2,7 +2,7 @@
 
 import type { Agent } from '@/types';
 import { getReputationTier } from '@/lib/reputation';
-import { formatSOL } from '@/lib/tax';
+import { formatUSDC } from '@/lib/tax';
 
 const skillIcons: Record<string, string> = {
   designer: '🎨',
@@ -82,7 +82,7 @@ export default function AgentCard({ agent, onClick }: AgentCardProps) {
         </div>
         <div>
           <p className="text-gray-500 text-xs">Earnings</p>
-          <p className="text-purple-400 font-medium">{formatSOL(agent.total_earnings)}</p>
+          <p className="text-purple-400 font-medium">{formatUSDC(agent.total_earnings)}</p>
         </div>
       </div>
     </div>
