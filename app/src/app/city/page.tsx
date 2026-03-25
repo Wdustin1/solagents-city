@@ -296,7 +296,7 @@ function generateAgents(count: number): CityAgent[] {
       targetX: x,
       targetY: y,
       pathQueue: [],
-      speed: 0.4 + Math.random() * 0.6,
+      speed: 0.25 + Math.random() * 0.35,
       color: ROLE_COLORS[role],
       district: homeDistrict,
       homeDistrict,
@@ -493,7 +493,7 @@ function AgentSprite({ agent, onClick, isSelected }: {
       {/* Body */}
       <circle r={5} fill={agent.color} stroke="rgba(0,0,0,0.4)" strokeWidth={0.5}>
         {isMoving && (
-          <animateTransform attributeName="transform" type="translate" values="0,0;0,-1.5;0,0" dur={`${0.3 + (1 - agent.speed) * 0.2}s`} repeatCount="indefinite" />
+          <animateTransform attributeName="transform" type="translate" values="0,0;0,-1.5;0,0" dur={`${0.5 + (1 - agent.speed) * 0.3}s`} repeatCount="indefinite" />
         )}
       </circle>
 
@@ -1089,7 +1089,7 @@ export default function CityPage() {
                 }
               }
             } else {
-              const step = 0.06 * a.speed;
+              const step = 0.035 * a.speed;
               a.x += (dx / dist) * step;
               a.y += (dy / dist) * step;
             }
