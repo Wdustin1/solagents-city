@@ -92,7 +92,7 @@ interface EconomyTicker {
 // CONSTANTS
 // ============================================
 
-const GRID_SIZE = 40;
+const GRID_SIZE = 55;
 const DAY_CYCLE_MS = 180000; // 3 minutes
 
 const AGENT_NAMES = [
@@ -129,11 +129,11 @@ const STATUS_COLORS: Record<AgentStatus, string> = {
 };
 
 const DISTRICT_COLORS: Record<District, { bg: string; border: string; glow: string; label: string; short: string }> = {
-  work: { bg: 'rgba(147, 51, 234, 0.08)', border: 'rgba(147, 51, 234, 0.3)', glow: '#9333ea', label: '💼 Work District', short: '💼 Work' },
-  financial: { bg: 'rgba(59, 130, 246, 0.08)', border: 'rgba(59, 130, 246, 0.3)', glow: '#3b82f6', label: '🏦 Financial District', short: '🏦 Finance' },
-  entertainment: { bg: 'rgba(234, 179, 8, 0.08)', border: 'rgba(234, 179, 8, 0.3)', glow: '#eab308', label: '🎰 Entertainment', short: '🎰 Fun' },
-  residential: { bg: 'rgba(34, 197, 94, 0.08)', border: 'rgba(34, 197, 94, 0.3)', glow: '#22c55e', label: '🏠 Residential', short: '🏠 Home' },
-  city_hall: { bg: 'rgba(156, 163, 175, 0.12)', border: 'rgba(156, 163, 175, 0.3)', glow: '#9ca3af', label: '🏛️ City Hall', short: '🏛️ Gov' },
+  work: { bg: 'rgba(147, 51, 234, 0.13)', border: 'rgba(147, 51, 234, 0.5)', glow: '#9333ea', label: '💼 Work District', short: '💼 Work' },
+  financial: { bg: 'rgba(59, 130, 246, 0.13)', border: 'rgba(59, 130, 246, 0.5)', glow: '#3b82f6', label: '🏦 Financial District', short: '🏦 Finance' },
+  entertainment: { bg: 'rgba(234, 179, 8, 0.13)', border: 'rgba(234, 179, 8, 0.5)', glow: '#eab308', label: '🎰 Entertainment', short: '🎰 Fun' },
+  residential: { bg: 'rgba(34, 197, 94, 0.13)', border: 'rgba(34, 197, 94, 0.5)', glow: '#22c55e', label: '🏠 Residential', short: '🏠 Home' },
+  city_hall: { bg: 'rgba(156, 163, 175, 0.15)', border: 'rgba(156, 163, 175, 0.5)', glow: '#9ca3af', label: '🏛️ City Hall', short: '🏛️ Gov' },
 };
 
 const JOB_TEMPLATES: { title: string; district: District; budget: [number, number] }[] = [
@@ -240,34 +240,34 @@ function getDayPhase(timeInCycle: number): { phase: string; skyColor: string; am
     const p = t / 0.15;
     return {
       phase: 'dawn',
-      skyColor: `rgb(${10 + p * 5}, ${10 + p * 5}, ${20 + p * 10})`,
-      ambientLight: 0.4 + p * 0.3,
+      skyColor: `rgb(${15 + p * 20}, ${10 + p * 15}, ${30 + p * 20})`,
+      ambientLight: 0.55 + p * 0.3,
       windowGlow: 0.8 - p * 0.4,
     };
   } else if (t < 0.45) {
     // Day
     return {
       phase: 'day',
-      skyColor: 'rgb(15, 15, 30)',
-      ambientLight: 0.8,
-      windowGlow: 0.3,
+      skyColor: 'rgb(22, 24, 52)',
+      ambientLight: 0.95,
+      windowGlow: 0.35,
     };
   } else if (t < 0.6) {
     // Dusk
     const p = (t - 0.45) / 0.15;
     return {
       phase: 'dusk',
-      skyColor: `rgb(${15 - p * 5}, ${15 - p * 5}, ${30 - p * 10})`,
-      ambientLight: 0.8 - p * 0.4,
-      windowGlow: 0.3 + p * 0.5,
+      skyColor: `rgb(${35 - p * 20}, ${20 - p * 10}, ${55 - p * 30})`,
+      ambientLight: 0.95 - p * 0.5,
+      windowGlow: 0.35 + p * 0.5,
     };
   } else {
     // Night
     return {
       phase: 'night',
-      skyColor: 'rgb(8, 8, 16)',
-      ambientLight: 0.35,
-      windowGlow: 0.9,
+      skyColor: 'rgb(10, 10, 22)',
+      ambientLight: 0.45,
+      windowGlow: 0.95,
     };
   }
 }
@@ -332,97 +332,159 @@ function IsometricBuilding({ building, isSelected, isHovered, onClick, onHover, 
   const glow = isSelected || isHovered;
   const windowBrightness = dayPhase.windowGlow;
   const floors = Math.floor(building.height * 1.5);
+  const isFinancial = building.district === 'financial';
+  const isEntertainment = building.district === 'entertainment';
+  const isResidential = building.district === 'residential';
+  const isCityHall = building.district === 'city_hall';
 
-  // Level indicator stars
-  const levelStars = '★'.repeat(building.level);
+  // Name label positioning
+  const labelX = w * 0.25 + d * 0.1;
+  const labelY = -h - d * 0.05 - 14;
+  const nameFontSize = building.width >= 3 ? 9 : 8;
+  const nameWidth = building.name.length * (nameFontSize * 0.52) + 8;
 
   return (
     <g
-      transform={`translate(${pos.x + 500}, ${pos.y + 80})`}
+      transform={`translate(${pos.x + 780}, ${pos.y + 200})`}
       onClick={onClick}
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
       style={{ cursor: 'pointer' }}
     >
+      {/* Glow halo for selected/hovered */}
       {glow && (
-        <ellipse cx={w * 0.25 + d * 0.25} cy={d * 0.15} rx={w * 0.4} ry={d * 0.2} fill={building.color} opacity={0.3} filter="url(#glow)" />
+        <ellipse cx={w * 0.25 + d * 0.25} cy={d * 0.15} rx={w * 0.55} ry={d * 0.3} fill={building.color} opacity={isSelected ? 0.45 : 0.2} filter="url(#strongGlow)" />
       )}
 
       {/* Shadow */}
-      <ellipse cx={w * 0.25 + d * 0.25} cy={d * 0.3} rx={w * 0.35} ry={d * 0.12} fill="rgba(0,0,0,0.3)" />
+      <ellipse cx={w * 0.25 + d * 0.25} cy={d * 0.3} rx={w * 0.4} ry={d * 0.15} fill="rgba(0,0,0,0.4)" />
 
-      {/* Building faces */}
-      <polygon points={leftFace} fill={building.wallColor} stroke="rgba(0,0,0,0.3)" strokeWidth="0.5" opacity={dayPhase.ambientLight + 0.2} />
-      <polygon points={rightFace} fill={building.color} stroke="rgba(0,0,0,0.3)" strokeWidth="0.5" opacity={dayPhase.ambientLight + 0.2} />
-      <polygon points={topFace} fill={building.roofColor} stroke="rgba(0,0,0,0.2)" strokeWidth="0.5" opacity={dayPhase.ambientLight + 0.3} />
+      {/* Building faces — left noticeably darker for contrast */}
+      <polygon points={leftFace} fill={building.wallColor} stroke="rgba(0,0,0,0.4)" strokeWidth="0.7"
+        opacity={Math.min(1, dayPhase.ambientLight * 0.65 + 0.1)} />
+      <polygon points={rightFace} fill={building.color} stroke="rgba(0,0,0,0.3)" strokeWidth="0.7"
+        opacity={Math.min(1, dayPhase.ambientLight + 0.2)} />
+      <polygon points={topFace} fill={building.roofColor} stroke="rgba(0,0,0,0.2)" strokeWidth="0.7"
+        opacity={Math.min(1, dayPhase.ambientLight + 0.45)} />
+
+      {/* Financial: glass highlight overlay on right face */}
+      {isFinancial && (
+        <polygon points={rightFace} fill="rgba(180,220,255,0.12)" stroke="none" />
+      )}
+
+      {/* Residential: warm balcony hints */}
+      {isResidential && floors >= 2 && Array.from({ length: Math.min(floors - 1, 3) }).map((_, i) => (
+        <rect key={`bal-${i}`}
+          x={d * 0.5 + 2} y={-h + d * 0.29 + (i + 1) * (h / floors) - 4}
+          width={w * 0.3} height={3} rx={0.5}
+          fill={building.accentColor} opacity={0.25}
+        />
+      ))}
+
+      {/* City Hall: columns on left face */}
+      {isCityHall && Array.from({ length: 4 }).map((_, i) => {
+        const colX = 2 + i * (d * 0.5 / 4.5);
+        const colY0 = -h + (i * d * 0.29 / 4.5);
+        const colY1 = d * 0.29 * (1 - i / 4.5);
+        return (
+          <line key={`col-${i}`}
+            x1={colX} y1={colY0} x2={colX * 0.9 + 0.5} y2={colY1}
+            stroke={building.accentColor} strokeWidth={1.5} opacity={0.5}
+          />
+        );
+      })}
 
       {/* Windows - left face */}
-      {Array.from({ length: floors }).map((_, i) => (
-        <g key={`wl-${i}`}>
-          <rect
-            x={2}
-            y={-h + 8 + i * (h / floors)}
-            width={3}
-            height={Math.max(2, (h / floors) - 4)}
-            fill={`rgba(255,255,${building.district === 'entertainment' ? '100' : '200'},${windowBrightness})`}
-            rx={0.5}
-          />
-          <rect
-            x={7}
-            y={-h + 8 + i * (h / floors)}
-            width={3}
-            height={Math.max(2, (h / floors) - 4)}
-            fill={`rgba(255,255,${building.district === 'entertainment' ? '100' : '200'},${windowBrightness * 0.7})`}
-            rx={0.5}
-          />
-        </g>
-      ))}
+      {Array.from({ length: floors }).map((_, i) => {
+        const wy = -h + 10 + i * (h / floors);
+        const wh = Math.max(3, (h / floors) - 5);
+        const wColor = isEntertainment ? `rgba(255,220,60,${windowBrightness})` : isFinancial ? `rgba(160,210,255,${windowBrightness})` : `rgba(255,255,210,${windowBrightness})`;
+        return (
+          <g key={`wl-${i}`}>
+            <rect x={2} y={wy} width={4} height={wh} fill={wColor} rx={0.7} />
+            <rect x={8} y={wy} width={4} height={wh} fill={wColor} rx={0.7} opacity={0.75} />
+          </g>
+        );
+      })}
 
       {/* Windows - right face */}
-      {Array.from({ length: floors }).map((_, i) => (
-        <g key={`wr-${i}`}>
-          <rect
-            x={d * 0.5 + 4}
-            y={-h + d * 0.29 + 6 + i * (h / floors)}
-            width={3}
-            height={Math.max(2, (h / floors) - 4)}
-            fill={`rgba(255,255,${building.district === 'entertainment' ? '100' : '200'},${windowBrightness * 0.9})`}
-            rx={0.5}
-          />
-          <rect
-            x={d * 0.5 + 9}
-            y={-h + d * 0.29 + 6 + i * (h / floors)}
-            width={3}
-            height={Math.max(2, (h / floors) - 4)}
-            fill={`rgba(255,255,${building.district === 'entertainment' ? '100' : '200'},${windowBrightness * 0.6})`}
-            rx={0.5}
-          />
-        </g>
-      ))}
+      {Array.from({ length: floors }).map((_, i) => {
+        const wy = -h + d * 0.29 + 8 + i * (h / floors);
+        const wh = Math.max(3, (h / floors) - 5);
+        const wColor = isEntertainment ? `rgba(255,200,50,${windowBrightness * 0.95})` : isFinancial ? `rgba(140,200,255,${windowBrightness * 0.95})` : `rgba(255,255,200,${windowBrightness * 0.9})`;
+        return (
+          <g key={`wr-${i}`}>
+            <rect x={d * 0.5 + 4} y={wy} width={4} height={wh} fill={wColor} rx={0.7} />
+            <rect x={d * 0.5 + 11} y={wy} width={4} height={wh} fill={wColor} rx={0.7} opacity={0.7} />
+          </g>
+        );
+      })}
 
-      {/* Entertainment district: neon accents */}
-      {building.district === 'entertainment' && (
+      {/* Door on right face base */}
+      <rect
+        x={d * 0.5 + w * 0.2} y={d * 0.29 - 10}
+        width={8} height={10} rx={1}
+        fill="rgba(0,0,0,0.6)" stroke={building.accentColor} strokeWidth={0.8} opacity={0.8}
+      />
+
+      {/* Entertainment: pulsing neon marquee border on right face */}
+      {isEntertainment && (
         <g>
-          <line x1={0} y1={-h} x2={0} y2={0} stroke="#fde047" strokeWidth={1} opacity={0.4 + windowBrightness * 0.3}>
-            <animate attributeName="opacity" values={`${0.3 + windowBrightness * 0.2};${0.6 + windowBrightness * 0.3};${0.3 + windowBrightness * 0.2}`} dur="2s" repeatCount="indefinite" />
+          <polygon points={rightFace} fill="none" stroke={building.accentColor} strokeWidth={2} opacity={0}>
+            <animate attributeName="opacity" values={`0.1;${0.5 + windowBrightness * 0.4};0.1`} dur="1.8s" repeatCount="indefinite" />
+          </polygon>
+          <line x1={0} y1={-h} x2={0} y2={0} stroke="#fde047" strokeWidth={1.5} opacity={0.5}>
+            <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2s" repeatCount="indefinite" />
           </line>
-          <line x1={d * 0.5} y1={-h + d * 0.29} x2={w * 0.5 + d * 0.5} y2={-h - d * 0.29 + d * 0.29} stroke="#fbbf24" strokeWidth={1} opacity={0.3}>
-            <animate attributeName="opacity" values="0.2;0.5;0.2" dur="1.5s" repeatCount="indefinite" />
+          <line x1={d * 0.5} y1={-h + d * 0.29} x2={w * 0.5 + d * 0.5} y2={-h - d * 0.29 + d * 0.29} stroke="#fbbf24" strokeWidth={1.5} opacity={0.4}>
+            <animate attributeName="opacity" values="0.2;0.7;0.2" dur="1.5s" repeatCount="indefinite" />
           </line>
         </g>
       )}
 
-      {/* Financial district: sleek top antenna */}
-      {building.district === 'financial' && building.height >= 4 && (
-        <line x1={w * 0.25} y1={-h - d * 0.15} x2={w * 0.25} y2={-h - d * 0.15 - 8} stroke="#60a5fa" strokeWidth={0.8} opacity={0.6} />
+      {/* Financial: rooftop antenna */}
+      {isFinancial && building.height >= 4 && (
+        <g>
+          <line x1={w * 0.25} y1={-h - d * 0.15} x2={w * 0.25} y2={-h - d * 0.15 - 14} stroke="#60a5fa" strokeWidth={1.2} opacity={0.8} />
+          <circle cx={w * 0.25} cy={-h - d * 0.15 - 14} r={2} fill="#60a5fa" opacity={0.9}>
+            <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite" />
+          </circle>
+        </g>
       )}
 
-      {/* Building name label */}
+      {/* Rooftop details */}
+      {building.height >= 4 ? (
+        // Helipad for tall buildings
+        <g>
+          <circle cx={w * 0.25 + d * 0.1} cy={-h - d * 0.08} r={6} fill="none" stroke={building.accentColor} strokeWidth={1} opacity={0.5} />
+          <text x={w * 0.25 + d * 0.1} y={-h - d * 0.08 + 3} fontSize={6} textAnchor="middle" fill={building.accentColor} opacity={0.6} style={{ pointerEvents: 'none' }}>H</text>
+        </g>
+      ) : (
+        // AC units for shorter buildings
+        <g>
+          <rect x={d * 0.3} y={-h - d * 0.12} width={5} height={4} rx={1} fill={building.accentColor} opacity={0.35} />
+          <rect x={d * 0.3 + 7} y={-h - d * 0.1} width={4} height={3} rx={1} fill={building.accentColor} opacity={0.25} />
+        </g>
+      )}
+
+      {/* City Hall: imposing sign on roof */}
+      {isCityHall && (
+        <text x={w * 0.25 + d * 0.1} y={-h - d * 0.18} fontSize={6} textAnchor="middle" fill="#e5e7eb" opacity={0.7} fontWeight="bold" style={{ pointerEvents: 'none' }}>
+          ★ GOV ★
+        </text>
+      )}
+
+      {/* Building name label — always visible with dark pill background */}
+      <rect
+        x={labelX - nameWidth / 2} y={labelY - nameFontSize + 1}
+        width={nameWidth} height={nameFontSize + 4}
+        rx={3} fill="rgba(0,0,0,0.72)"
+        style={{ pointerEvents: 'none' }}
+      />
       <text
-        x={w * 0.25 + d * 0.1}
-        y={-h - d * 0.05 - 8}
-        fontSize={building.width >= 3 ? 7 : 6}
-        fill={isSelected || isHovered ? 'white' : 'rgba(255,255,255,0.5)'}
+        x={labelX} y={labelY + 1}
+        fontSize={nameFontSize}
+        fill={isSelected ? building.accentColor : 'rgba(255,255,255,0.9)'}
         textAnchor="middle"
         fontWeight={isSelected ? 'bold' : 'normal'}
         fontFamily="monospace"
@@ -433,21 +495,21 @@ function IsometricBuilding({ building, isSelected, isHovered, onClick, onHover, 
 
       {/* Level stars */}
       <text
-        x={w * 0.25 + d * 0.1}
-        y={-h - d * 0.05 - 1}
-        fontSize={5}
+        x={labelX} y={labelY - nameFontSize - 2}
+        fontSize={7}
         fill={building.accentColor}
         textAnchor="middle"
+        opacity={0.85}
         style={{ pointerEvents: 'none' }}
       >
-        {levelStars}
+        {'★'.repeat(building.level)}
       </text>
 
-      {/* Agent count badge */}
+      {/* Agent count badge — bigger */}
       {building.agents > 0 && (
         <>
-          <circle cx={w * 0.5 + d * 0.5 - 2} cy={-h - d * 0.29 + d * 0.29 - 10} r={8} fill="#1e1e2e" stroke={building.accentColor} strokeWidth={1.5} />
-          <text x={w * 0.5 + d * 0.5 - 2} y={-h - d * 0.29 + d * 0.29 - 6.5} fontSize={8} fill="white" textAnchor="middle" fontWeight="bold" style={{ pointerEvents: 'none' }}>
+          <circle cx={w * 0.5 + d * 0.5 - 2} cy={-h - d * 0.29 + d * 0.29 - 12} r={10} fill="#1e1e2e" stroke={building.accentColor} strokeWidth={2} />
+          <text x={w * 0.5 + d * 0.5 - 2} y={-h - d * 0.29 + d * 0.29 - 8} fontSize={10} fill="white" textAnchor="middle" fontWeight="bold" style={{ pointerEvents: 'none' }}>
             {building.agents}
           </text>
         </>
@@ -455,8 +517,8 @@ function IsometricBuilding({ building, isSelected, isHovered, onClick, onHover, 
 
       {/* Selection ring */}
       {isSelected && (
-        <ellipse cx={w * 0.25 + d * 0.25} cy={d * 0.15} rx={w * 0.45} ry={d * 0.25} fill="none" stroke={building.accentColor} strokeWidth={1.5} strokeDasharray="4 3" opacity={0.8}>
-          <animate attributeName="stroke-dashoffset" values="0;14" dur="1s" repeatCount="indefinite" />
+        <ellipse cx={w * 0.25 + d * 0.25} cy={d * 0.15} rx={w * 0.5} ry={d * 0.28} fill="none" stroke={building.accentColor} strokeWidth={2.5} strokeDasharray="6 4" opacity={0.9}>
+          <animate attributeName="stroke-dashoffset" values="0;20" dur="1s" repeatCount="indefinite" />
         </ellipse>
       )}
     </g>
@@ -471,55 +533,69 @@ function AgentSprite({ agent, onClick, isSelected }: {
   const pos = toIso(agent.x, agent.y);
   const roleIcon = ROLE_ICONS[agent.role];
   const statusColor = STATUS_COLORS[agent.status];
-
   const isMoving = agent.status === 'walking';
+  const nameWidth = agent.name.length * 4.8 + 10;
 
   return (
     <g
-      transform={`translate(${pos.x + 500}, ${pos.y + 80})`}
+      transform={`translate(${pos.x + 780}, ${pos.y + 200})`}
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       style={{ cursor: 'pointer', opacity: agent.opacity }}
     >
+      {/* Pulsing glow ring for walking agents */}
+      {isMoving && (
+        <circle r={10} fill="none" stroke={agent.color} strokeWidth={1.5} opacity={0.4}>
+          <animate attributeName="r" values="8;13;8" dur="1.2s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.5;0.1;0.5" dur="1.2s" repeatCount="indefinite" />
+        </circle>
+      )}
+
       {/* Selection highlight */}
       {isSelected && (
-        <circle r={12} fill="none" stroke={agent.color} strokeWidth={1} opacity={0.6}>
-          <animate attributeName="r" values="10;14;10" dur="1.5s" repeatCount="indefinite" />
+        <circle r={14} fill="none" stroke={agent.color} strokeWidth={2} opacity={0.7}>
+          <animate attributeName="r" values="12;17;12" dur="1.5s" repeatCount="indefinite" />
         </circle>
       )}
 
       {/* Shadow */}
-      <ellipse cx={0} cy={2} rx={4} ry={1.5} fill="rgba(0,0,0,0.3)" />
+      <ellipse cx={0} cy={3} rx={6} ry={2.5} fill="rgba(0,0,0,0.4)" />
 
-      {/* Body */}
-      <circle r={5} fill={agent.color} stroke="rgba(0,0,0,0.4)" strokeWidth={0.5}>
+      {/* Body — bigger radius */}
+      <circle r={8} fill={agent.color} stroke="rgba(0,0,0,0.5)" strokeWidth={1}>
         {isMoving && (
-          <animateTransform attributeName="transform" type="translate" values="0,0;0,-1.5;0,0" dur={`${0.5 + (1 - agent.speed) * 0.3}s`} repeatCount="indefinite" />
+          <animateTransform attributeName="transform" type="translate" values="0,0;0,-2;0,0" dur={`${0.5 + (1 - agent.speed) * 0.3}s`} repeatCount="indefinite" />
         )}
       </circle>
 
-      {/* Role icon */}
-      <text y={1.5} fontSize={6} textAnchor="middle" fill="white" fontWeight="bold" style={{ pointerEvents: 'none' }}>
+      {/* Role icon — larger */}
+      <text y={2.5} fontSize={9} textAnchor="middle" fill="white" fontWeight="bold" style={{ pointerEvents: 'none' }}>
         {roleIcon}
       </text>
 
       {/* Status dot */}
-      <circle cx={4} cy={-3} r={1.8} fill={statusColor} stroke="#1e1e2e" strokeWidth={0.5}>
+      <circle cx={6} cy={-5} r={2.5} fill={statusColor} stroke="#1e1e2e" strokeWidth={0.8}>
         {agent.status === 'working' && (
           <animate attributeName="fill" values={`${statusColor};#86efac;${statusColor}`} dur="1s" repeatCount="indefinite" />
         )}
       </circle>
 
-      {/* Name */}
-      <text y={-9} fontSize={5.5} textAnchor="middle" fill="rgba(255,255,255,0.85)" fontFamily="monospace" fontWeight="bold" style={{ pointerEvents: 'none' }}>
+      {/* Name label with dark pill background */}
+      <rect
+        x={-nameWidth / 2} y={-21}
+        width={nameWidth} height={11}
+        rx={3} fill="rgba(0,0,0,0.75)"
+        style={{ pointerEvents: 'none' }}
+      />
+      <text y={-12} fontSize={7} textAnchor="middle" fill="rgba(255,255,255,0.95)" fontFamily="monospace" fontWeight="bold" style={{ pointerEvents: 'none' }}>
         {agent.name}
       </text>
 
       {/* Current task indicator */}
       {agent.currentTask && agent.status === 'working' && (
         <g>
-          <rect x={-15} y={-20} width={30} height={8} rx={2} fill="rgba(0,0,0,0.7)" stroke={agent.color} strokeWidth={0.5} />
-          <text y={-14} fontSize={4} textAnchor="middle" fill="rgba(255,255,255,0.8)" style={{ pointerEvents: 'none' }}>
-            {agent.currentTask.length > 12 ? agent.currentTask.slice(0, 12) + '…' : agent.currentTask}
+          <rect x={-20} y={-34} width={40} height={10} rx={2} fill="rgba(0,0,0,0.8)" stroke={agent.color} strokeWidth={0.8} />
+          <text y={-26} fontSize={5} textAnchor="middle" fill="rgba(255,255,255,0.85)" style={{ pointerEvents: 'none' }}>
+            {agent.currentTask.length > 14 ? agent.currentTask.slice(0, 14) + '…' : agent.currentTask}
           </text>
         </g>
       )}
@@ -530,14 +606,17 @@ function AgentSprite({ agent, onClick, isSelected }: {
 function FloatingTextElement({ ft }: { ft: FloatingText }) {
   return (
     <text
-      x={ft.x + 500}
-      y={ft.y + 80}
-      fontSize={9}
+      x={ft.x + 780}
+      y={ft.y + 200}
+      fontSize={12}
       fill={ft.color}
       textAnchor="middle"
       fontWeight="bold"
       fontFamily="monospace"
       opacity={ft.opacity}
+      stroke="rgba(0,0,0,0.6)"
+      strokeWidth={2}
+      paintOrder="stroke"
       style={{ pointerEvents: 'none' }}
     >
       {ft.text}
@@ -553,7 +632,7 @@ function TreasuryFillBar({ fillPercent }: { fillPercent: number }) {
   const filled = (fillPercent / 100) * barH;
 
   return (
-    <g transform={`translate(${pos.x + 500 - 12}, ${pos.y + 80 - 45})`}>
+    <g transform={`translate(${pos.x + 780 - 12}, ${pos.y + 200 - 45})`}>
       <rect x={0} y={0} width={barW} height={barH} rx={1} fill="rgba(0,0,0,0.5)" stroke="rgba(255,255,255,0.2)" strokeWidth={0.5} />
       <rect x={0} y={barH - filled} width={barW} height={filled} rx={1} fill="#22c55e" opacity={0.8}>
         <animate attributeName="opacity" values="0.6;0.9;0.6" dur="2s" repeatCount="indefinite" />
@@ -573,11 +652,11 @@ function DistrictZone({ district, bounds, isActive, onClick }: {
   const tr = toIso(bounds.x2, bounds.y1);
   const br = toIso(bounds.x2, bounds.y2);
   const bl = toIso(bounds.x1, bounds.y2);
-  const points = `${tl.x + 500},${tl.y + 80} ${tr.x + 500},${tr.y + 80} ${br.x + 500},${br.y + 80} ${bl.x + 500},${bl.y + 80}`;
+  const points = `${tl.x + 780},${tl.y + 200} ${tr.x + 780},${tr.y + 200} ${br.x + 780},${br.y + 200} ${bl.x + 780},${bl.y + 200}`;
 
   return (
     <g onClick={onClick} style={{ cursor: 'pointer' }}>
-      <polygon points={points} fill={colors.bg} stroke={isActive ? colors.glow : colors.border} strokeWidth={isActive ? 2 : 1} strokeDasharray={isActive ? 'none' : '4 4'} opacity={isActive ? 1 : 0.5} />
+      <polygon points={points} fill={colors.bg} stroke={isActive ? colors.glow : colors.border} strokeWidth={isActive ? 2.5 : 1.5} strokeDasharray={isActive ? 'none' : '5 5'} opacity={isActive ? 1 : 0.6} />
     </g>
   );
 }
@@ -594,8 +673,8 @@ function Roads() {
         const end = toIso(road.to.x, road.to.y);
         return (
           <g key={i}>
-            <line x1={start.x + 500} y1={start.y + 80} x2={end.x + 500} y2={end.y + 80} stroke="rgba(255,255,255,0.06)" strokeWidth={GRID_SIZE * 0.5} strokeLinecap="round" />
-            <line x1={start.x + 500} y1={start.y + 80} x2={end.x + 500} y2={end.y + 80} stroke="rgba(255,255,255,0.1)" strokeWidth={1} strokeDasharray="8 12" />
+            <line x1={start.x + 780} y1={start.y + 200} x2={end.x + 780} y2={end.y + 200} stroke="rgba(255,255,255,0.08)" strokeWidth={GRID_SIZE * 0.5} strokeLinecap="round" />
+            <line x1={start.x + 780} y1={start.y + 200} x2={end.x + 780} y2={end.y + 200} stroke="rgba(255,255,255,0.22)" strokeWidth={1.2} strokeDasharray="10 14" />
           </g>
         );
       })}
@@ -607,11 +686,11 @@ function GroundGrid() {
   const lines = [];
   for (let i = 0; i <= 18; i++) {
     const start = toIso(i, 0); const end = toIso(i, 14);
-    lines.push(<line key={`v-${i}`} x1={start.x + 500} y1={start.y + 80} x2={end.x + 500} y2={end.y + 80} stroke="rgba(255,255,255,0.03)" strokeWidth={0.5} />);
+    lines.push(<line key={`v-${i}`} x1={start.x + 780} y1={start.y + 200} x2={end.x + 780} y2={end.y + 200} stroke="rgba(255,255,255,0.05)" strokeWidth={0.5} />);
   }
   for (let j = 0; j <= 14; j++) {
     const start = toIso(0, j); const end = toIso(18, j);
-    lines.push(<line key={`h-${j}`} x1={start.x + 500} y1={start.y + 80} x2={end.x + 500} y2={end.y + 80} stroke="rgba(255,255,255,0.03)" strokeWidth={0.5} />);
+    lines.push(<line key={`h-${j}`} x1={start.x + 780} y1={start.y + 200} x2={end.x + 780} y2={end.y + 200} stroke="rgba(255,255,255,0.05)" strokeWidth={0.5} />);
   }
   return <g>{lines}</g>;
 }
@@ -1340,23 +1419,27 @@ export default function CityPage() {
 
           {/* SVG City */}
           <svg
-            viewBox="0 0 1000 700"
+            viewBox="0 0 1600 1050"
             className="w-full h-full touch-pan-x touch-pan-y"
             preserveAspectRatio="xMidYMid meet"
             style={{ background: dayPhase.skyColor }}
           >
             <defs>
               <filter id="glow">
-                <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                <feGaussianBlur stdDeviation="5" result="coloredBlur" />
+                <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
+              </filter>
+              <filter id="strongGlow">
+                <feGaussianBlur stdDeviation="8" result="coloredBlur" />
                 <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
               </filter>
               <radialGradient id="cityGlow" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor={`rgba(147, 51, 234, ${0.03 + dayPhase.windowGlow * 0.04})`} />
+                <stop offset="0%" stopColor={`rgba(147, 51, 234, ${0.04 + dayPhase.windowGlow * 0.06})`} />
                 <stop offset="100%" stopColor="transparent" />
               </radialGradient>
             </defs>
 
-            <rect width="1000" height="700" fill="url(#cityGlow)" />
+            <rect width="1600" height="1050" fill="url(#cityGlow)" />
             <GroundGrid />
 
             {(Object.keys(DISTRICT_BOUNDS) as District[]).map(d => (
@@ -1397,7 +1480,7 @@ export default function CityPage() {
             {/* Floating texts */}
             {floatingTexts.map(ft => <FloatingTextElement key={ft.id} ft={ft} />)}
 
-            <text x="500" y="685" textAnchor="middle" fontSize="10" fill="rgba(255,255,255,0.1)" fontWeight="bold" letterSpacing="8" style={{ pointerEvents: 'none' }}>
+            <text x="800" y="1035" textAnchor="middle" fontSize="12" fill="rgba(255,255,255,0.1)" fontWeight="bold" letterSpacing="10" style={{ pointerEvents: 'none' }}>
               SOL AGENTS CITY
             </text>
           </svg>
