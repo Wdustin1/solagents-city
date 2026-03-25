@@ -1537,7 +1537,15 @@ export default function CityPage() {
           {/* Title overlay */}
           <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-10">
             <h1 className="text-lg sm:text-2xl font-bold text-white/90 flex items-center gap-1.5 sm:gap-2">
-              <span className="text-2xl sm:text-3xl">🏙️</span> Sol Agents City
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="sm:w-9 sm:h-9">
+                <rect x="4" y="6" width="16" height="14" rx="3" stroke="var(--accent, #60a5fa)" strokeWidth="1.5" fill="none" />
+                <circle cx="9" cy="13" r="2" fill="var(--accent, #60a5fa)" />
+                <circle cx="15" cy="13" r="2" fill="var(--accent, #60a5fa)" />
+                <line x1="12" y1="6" x2="12" y2="2" stroke="var(--accent, #60a5fa)" strokeWidth="1.5" />
+                <circle cx="12" cy="2" r="1.5" fill="var(--accent, #60a5fa)" />
+                <line x1="9" y1="17" x2="15" y2="17" stroke="var(--accent, #60a5fa)" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              <span><span style={{ color: 'var(--accent, #60a5fa)' }}>SOL</span> AGENTS CITY</span>
             </h1>
             <p className="text-gray-500 text-xs sm:text-sm mt-0.5 sm:mt-1">
               {agents.filter(a => a.status !== 'idle').length} active · {dayPhase.phase}
